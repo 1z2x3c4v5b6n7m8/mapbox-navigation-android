@@ -51,7 +51,8 @@ import com.mapbox.api.directions.v5.models.BannerText
 
 class RoadShieldComponentNode private constructor(
     val text: String,
-    val shieldIcon: ByteArray? = null
+    val shieldUrl: String? = null,
+    var shieldIcon: ByteArray? = null
 ) : ComponentNode {
 
     /**
@@ -64,6 +65,7 @@ class RoadShieldComponentNode private constructor(
         other as RoadShieldComponentNode
 
         if (text != other.text) return false
+        if (shieldUrl != other.shieldUrl) return false
         if (shieldIcon != null) {
             if (other.shieldIcon == null) return false
             if (!shieldIcon.contentEquals(other.shieldIcon)) return false
@@ -77,6 +79,7 @@ class RoadShieldComponentNode private constructor(
      */
     override fun hashCode(): Int {
         var result = text.hashCode()
+        result = 31 * result + shieldUrl.hashCode()
         result = 31 * result + (shieldIcon?.contentHashCode() ?: 0)
         return result
     }
@@ -87,6 +90,7 @@ class RoadShieldComponentNode private constructor(
     override fun toString(): String {
         return "RoadShieldComponentNode(" +
             "text='$text', " +
+            "shieldUrl='$shieldUrl', " +
             "shieldIcon=${shieldIcon?.contentToString()}" +
             ")"
     }
@@ -97,6 +101,7 @@ class RoadShieldComponentNode private constructor(
     fun toBuilder(): Builder {
         return Builder()
             .text(text)
+            .shieldUrl(shieldUrl)
             .shieldIcon(shieldIcon)
     }
 
@@ -107,6 +112,7 @@ class RoadShieldComponentNode private constructor(
      */
     class Builder {
         private var text: String = ""
+        private var shieldUrl: String? = null
         private var shieldIcon: ByteArray? = null
 
         /**
@@ -116,6 +122,14 @@ class RoadShieldComponentNode private constructor(
          */
         fun text(text: String): Builder =
             apply { this.text = text }
+
+        /**
+         * apply shieldUrl to the Builder.
+         * @param shieldUrl String?
+         * @return Builder
+         */
+        fun shieldUrl(shieldUrl: String?): Builder =
+            apply { this.shieldUrl = shieldUrl }
 
         /**
          * apply shieldIcon to the Builder.
@@ -132,6 +146,7 @@ class RoadShieldComponentNode private constructor(
         fun build(): RoadShieldComponentNode {
             return RoadShieldComponentNode(
                 text,
+                shieldUrl,
                 shieldIcon
             )
         }

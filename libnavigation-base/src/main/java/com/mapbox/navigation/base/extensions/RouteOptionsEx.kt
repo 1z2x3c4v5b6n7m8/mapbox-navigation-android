@@ -57,7 +57,7 @@ fun RouteOptions.Builder.applyDefaultNavigationOptions(): RouteOptions.Builder =
     overview(DirectionsCriteria.OVERVIEW_FULL)
     steps(true)
     continueStraight(true)
-    roundaboutExits(true)
+    roundaboutExits(false)
     annotationsList(
         listOf(
             DirectionsCriteria.ANNOTATION_CONGESTION,

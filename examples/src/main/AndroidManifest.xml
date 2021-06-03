@@ -64,6 +64,11 @@
     </activity>
 
     <activity
+        android:name=".MapboxManeuverActivityV2"
+        android:label="V2 Maneuver Example">
+    </activity>
+
+    <activity
         android:name=".MapboxVoiceActivity"
         android:label="@string/title_voice">
     </activity>
