@@ -4,11 +4,14 @@ import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
 import com.mapbox.maps.MapboxMap
+import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineApi
+import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineView
 import com.mapbox.navigation.ui.maps.route.line.model.ClosestRouteValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineClearValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineError
+import com.mapbox.navigation.ui.maps.route.line.model.RouteLineUpdateValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteNotFound
 import com.mapbox.navigation.ui.maps.route.line.model.RouteSetValue
 import kotlin.coroutines.resume
@@ -84,6 +87,29 @@ object MapboxRouteLineApiExtensions {
     suspend fun MapboxRouteLineApi.clearRouteLine(): Expected<RouteLineError, RouteLineClearValue> {
         return suspendCoroutine { continuation ->
             this.clearRouteLine { value -> continuation.resume(value) }
+        }
+    }
+
+    /**
+     * Adjusts the route line visibility so that only the current route leg is visible. This is
+     * intended to be used with routes that have multiple waypoints.
+     *
+     * Your activity or fragment should register a route progress listener and on each
+     * route progress call this method and render the result using the [MapboxRouteLineView].
+     *
+     * This method should NOT be used in conjunction with the vanishing route line feature. If
+     * using the vanishing route line feature ignore this method. The normal vanishing route
+     * line mechanism will take care of hiding inactive route legs if the diminish inactive
+     * route legs option is enabled AND the vanishing route line feature is enabled.
+     *
+     * @param routeProgress a [RouteProgress]
+     */
+    suspend fun MapboxRouteLineApi.showOnlyActiveLeg(routeProgress: RouteProgress):
+        Expected<RouteLineError, RouteLineUpdateValue> {
+        return suspendCoroutine { continuation ->
+            this.showOnlyActiveLeg(routeProgress) { value ->
+                continuation.resume(value)
+            }
         }
     }
 }

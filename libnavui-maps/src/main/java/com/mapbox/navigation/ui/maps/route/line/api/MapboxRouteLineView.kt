@@ -16,8 +16,8 @@ import com.mapbox.navigation.ui.maps.internal.route.line.MapboxRouteLineUtils.in
 import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineClearValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineError
+import com.mapbox.navigation.ui.maps.route.line.model.RouteLineUpdateValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteSetValue
-import com.mapbox.navigation.ui.maps.route.line.model.VanishingRouteLineUpdateValue
 
 /**
  * Responsible for rendering side effects produced by the [MapboxRouteLineApi]. The [MapboxRouteLineApi]
@@ -108,7 +108,7 @@ class MapboxRouteLineView(var options: MapboxRouteLineOptions) {
      */
     fun renderVanishingRouteLineUpdateValue(
         style: Style,
-        update: Expected<RouteLineError, VanishingRouteLineUpdateValue>
+        update: Expected<RouteLineError, RouteLineUpdateValue>
     ) {
         update.onValue {
             initializeLayers(style, options)

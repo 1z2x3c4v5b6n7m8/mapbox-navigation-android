@@ -1,5 +1,6 @@
 package com.mapbox.navigation.ui.maps.route.line.api
 
+import android.graphics.Color
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.ExpectedFactory
@@ -25,12 +26,14 @@ import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineClearValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineError
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineExpressionData
+import com.mapbox.navigation.ui.maps.route.line.model.RouteLineUpdateValue
 import com.mapbox.navigation.ui.maps.route.line.model.RouteNotFound
 import com.mapbox.navigation.ui.maps.route.line.model.RouteSetValue
 import com.mapbox.navigation.ui.maps.route.line.model.VanishingPointState
-import com.mapbox.navigation.ui.maps.route.line.model.VanishingRouteLineUpdateValue
+import com.mapbox.navigation.ui.maps.util.CacheResultUtils.cacheResult
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
 import com.mapbox.navigation.utils.internal.ThreadController
+import com.mapbox.navigation.utils.internal.parallelMap
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfException
 import com.mapbox.turf.TurfMisc
@@ -161,11 +164,17 @@ class MapboxRouteLineApi(
 ) {
     private var primaryRoute: DirectionsRoute? = null
     private val directionsRoutes: MutableList<DirectionsRoute> = mutableListOf()
-    private val routeLineExpressionData: MutableList<RouteLineExpressionData> = mutableListOf()
+    private var routeLineExpressionData: List<RouteLineExpressionData> = emptyList()
     private var lastIndexUpdateTimeNano: Long = 0
     private val routeFeatureData: MutableList<RouteFeatureData> = mutableListOf()
     private val jobControl = ThreadController.getMainScopeAndRootJob()
     private val mutex = Mutex()
+    internal var activeLegIndex = INVALID_ACTIVE_LEG_INDEX
+        private set
+
+    companion object {
+        private const val INVALID_ACTIVE_LEG_INDEX = -1
+    }
 
     /**
      * @return the vanishing point of the route line if the vanishing route line feature was enabled
@@ -238,7 +247,7 @@ class MapboxRouteLineApi(
      */
     fun updateTraveledRouteLine(
         point: Point
-    ): Expected<RouteLineError, VanishingRouteLineUpdateValue> {
+    ): Expected<RouteLineError, RouteLineUpdateValue> {
         if (routeLineOptions.vanishingRouteLine?.vanishingPointState ==
             VanishingPointState.DISABLED || System.nanoTime() - lastIndexUpdateTimeNano >
             RouteConstants.MAX_ELAPSED_SINCE_INDEX_UPDATE_NANO
@@ -252,11 +261,17 @@ class MapboxRouteLineApi(
             )
         }
 
+        val workingRouteLineExpressionData = if (routeLineOptions.deEmphasizeInactiveRouteLegs) {
+            deEmphasizeSegmentsNotInLeg(activeLegIndex, routeLineExpressionData)
+        } else {
+            routeLineExpressionData
+        }
         val routeLineExpressions =
             routeLineOptions.vanishingRouteLine?.getTraveledRouteLineExpressions(
                 point,
-                routeLineExpressionData,
-                routeLineOptions.resourceProvider
+                workingRouteLineExpressionData,
+                routeLineOptions.resourceProvider,
+                activeLegIndex
             )
 
         return when (routeLineExpressions) {
@@ -269,7 +284,7 @@ class MapboxRouteLineApi(
                 )
             }
             else -> ExpectedFactory.createValue(
-                VanishingRouteLineUpdateValue(
+                RouteLineUpdateValue(
                     routeLineExpressions.trafficLineExpression,
                     routeLineExpressions.routeLineExpression,
                     routeLineExpressions.routeLineCasingExpression
@@ -292,9 +307,10 @@ class MapboxRouteLineApi(
             mutex.withLock {
                 routeLineOptions.vanishingRouteLine?.clear()
                 routeLineOptions.vanishingRouteLine?.vanishPointOffset = 0.0
+                activeLegIndex = INVALID_ACTIVE_LEG_INDEX
                 directionsRoutes.clear()
                 routeFeatureData.clear()
-                routeLineExpressionData.clear()
+                routeLineExpressionData = emptyList()
 
                 consumer.accept(
                     ExpectedFactory.createValue(
@@ -322,18 +338,25 @@ class MapboxRouteLineApi(
      */
     fun setVanishingOffset(
         offset: Double
-    ): Expected<RouteLineError, VanishingRouteLineUpdateValue> {
+    ): Expected<RouteLineError, RouteLineUpdateValue> {
         routeLineOptions.vanishingRouteLine?.vanishPointOffset = offset
         return if (offset >= 0) {
+            val workingExpressionData = if (routeLineOptions.deEmphasizeInactiveRouteLegs) {
+                deEmphasizeSegmentsNotInLeg(activeLegIndex, routeLineExpressionData)
+            } else {
+                routeLineExpressionData
+            }
+
             val trafficLineExpression = MapboxRouteLineUtils.getTrafficLineExpression(
                 offset,
-                routeLineExpressionData,
+                Color.TRANSPARENT,
                 routeLineOptions
                     .resourceProvider
                     .routeLineColorResources
-                    .routeUnknownTrafficColor
+                    .routeUnknownTrafficColor,
+                workingExpressionData
             )
-            val routeLineExpression = MapboxRouteLineUtils.getVanishingRouteLineExpression(
+            val routeLineExpression = MapboxRouteLineUtils.getRouteLineExpression(
                 offset,
                 routeLineOptions
                     .resourceProvider
@@ -342,7 +365,7 @@ class MapboxRouteLineApi(
                 routeLineOptions.resourceProvider.routeLineColorResources.routeDefaultColor
             )
             val routeLineCasingExpression =
-                MapboxRouteLineUtils.getVanishingRouteLineExpression(
+                MapboxRouteLineUtils.getRouteLineExpression(
                     offset,
                     routeLineOptions
                         .resourceProvider.routeLineColorResources.routeLineTraveledCasingColor,
@@ -350,7 +373,7 @@ class MapboxRouteLineApi(
                 )
 
             ExpectedFactory.createValue(
-                VanishingRouteLineUpdateValue(
+                RouteLineUpdateValue(
                     trafficLineExpression,
                     routeLineExpression,
                     routeLineCasingExpression
@@ -373,6 +396,106 @@ class MapboxRouteLineApi(
     fun updateWithRouteProgress(routeProgress: RouteProgress) {
         updateUpcomingRoutePointIndex(routeProgress)
         updateVanishingPointState(routeProgress.currentState)
+
+        // If the de-emphasize inactive route legs feature is enabled and the vanishing route line
+        // feature is enabled and the active leg index has changed, then calling the
+        // deEmphasizeSegmentsNotInLeg() method here will get the resulting calculation cached so
+        // that calls to deEmphasizeSegmentsNotInLeg() made by updateTraveledRouteLine()
+        // won't have to wait for the result. The updateTraveledRouteLine method is much
+        // more time sensitive.
+        if (
+            routeLineOptions.deEmphasizeInactiveRouteLegs &&
+            routeLineOptions.vanishingRouteLine != null
+        ) {
+            ifNonNull(routeProgress.currentLegProgress) { routeLegProgress ->
+                if (routeLegProgress.legIndex > activeLegIndex) {
+                    jobControl.scope.launch {
+                        mutex.withLock {
+                            deEmphasizeSegmentsNotInLeg(
+                                routeLegProgress.legIndex,
+                                routeLineExpressionData
+                            )
+                            activeLegIndex = routeLegProgress.legIndex
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Adjusts the route line visibility so that only the current route leg is visible. This is
+     * intended to be used with routes that have multiple waypoints.
+     *
+     * Your activity or fragment should register a route progress listener and on each
+     * route progress call this method and render the result using the [MapboxRouteLineView].
+     *
+     * This method should NOT be used in conjunction with the vanishing route line feature. If
+     * using the vanishing route line feature ignore this method. The normal vanishing route
+     * line mechanism will take care of hiding inactive route legs if the diminish inactive
+     * route legs option is enabled AND the vanishing route line feature is enabled.
+     *
+     * @param routeProgress a [RouteProgress]
+     * @param consumer a consumer to receive the method result
+     */
+    fun showOnlyActiveLeg(
+        routeProgress: RouteProgress,
+        consumer: MapboxNavigationConsumer<Expected<RouteLineError, RouteLineUpdateValue>>
+    ) {
+        jobControl.scope.launch {
+            mutex.withLock {
+                val expected = ifNonNull(routeProgress.currentLegProgress) { routeLegProgress ->
+                    val updatedRouteData = deEmphasizeSegmentsNotInLeg(
+                        routeLegProgress.legIndex,
+                        routeLineExpressionData
+                    )
+                    val routeLineExpression = MapboxRouteLineUtils.getRouteLineExpression(
+                        0.0,
+                        updatedRouteData,
+                        routeLineOptions.resourceProvider.routeLineColorResources.routeDefaultColor,
+                        routeLineOptions.resourceProvider.routeLineColorResources.routeDefaultColor,
+                        routeLineOptions
+                            .resourceProvider
+                            .routeLineColorResources
+                            .deEmphasizeInActiveRouteLegsColor,
+                        routeLegProgress.legIndex
+                    )
+                    val casingLineExpression = MapboxRouteLineUtils.getRouteLineExpression(
+                        0.0,
+                        updatedRouteData,
+                        routeLineOptions.resourceProvider.routeLineColorResources.routeCasingColor,
+                        routeLineOptions.resourceProvider.routeLineColorResources.routeCasingColor,
+                        Color.TRANSPARENT,
+                        routeLegProgress.legIndex
+                    )
+
+                    val trafficLineExpression = MapboxRouteLineUtils.getTrafficLineExpression(
+                        0.0,
+                        routeLineOptions
+                            .resourceProvider
+                            .routeLineColorResources
+                            .routeLineTraveledColor,
+                        routeLineOptions
+                            .resourceProvider
+                            .routeLineColorResources
+                            .routeUnknownTrafficColor,
+                        updatedRouteData
+                    )
+
+                    ExpectedFactory.createValue<RouteLineError, RouteLineUpdateValue>(
+                        RouteLineUpdateValue(
+                            trafficLineExpression,
+                            routeLineExpression,
+                            casingLineExpression
+                        )
+                    )
+                } ?: ExpectedFactory.createError<RouteLineError, RouteLineUpdateValue>(
+                    RouteLineError("", null)
+                )
+
+                consumer.accept(expected)
+            }
+        }
     }
 
     /**
@@ -618,17 +741,17 @@ class MapboxRouteLineApi(
                         routeLineOptions.displayRestrictedRoadSections
                     )
                 } ?: listOf()
-            routeLineExpressionData.clear()
-            routeLineExpressionData.addAll(segments)
+            routeLineExpressionData = segments
             MapboxRouteLineUtils.getTrafficLineExpression(
                 routeLineOptions.vanishingRouteLine?.vanishPointOffset ?: 0.0,
+                Color.TRANSPARENT,
+                routeLineOptions.resourceProvider.routeLineColorResources.routeUnknownTrafficColor,
                 segments,
-                routeLineOptions.resourceProvider.routeLineColorResources.routeUnknownTrafficColor
             )
         }
 
         val routeLineExpressionDef = jobControl.scope.async(ThreadController.IODispatcher) {
-            MapboxRouteLineUtils.getVanishingRouteLineExpression(
+            MapboxRouteLineUtils.getRouteLineExpression(
                 routeLineOptions.vanishingRouteLine?.vanishPointOffset ?: 0.0,
                 routeLineOptions.resourceProvider.routeLineColorResources.routeLineTraveledColor,
                 routeLineOptions.resourceProvider.routeLineColorResources.routeDefaultColor
@@ -636,7 +759,7 @@ class MapboxRouteLineApi(
         }
 
         val routeLineCasingExpressionDef = jobControl.scope.async(ThreadController.IODispatcher) {
-            MapboxRouteLineUtils.getVanishingRouteLineExpression(
+            MapboxRouteLineUtils.getRouteLineExpression(
                 routeLineOptions.vanishingRouteLine?.vanishPointOffset ?: 0.0,
                 routeLineOptions
                     .resourceProvider
@@ -661,11 +784,12 @@ class MapboxRouteLineApi(
                     } ?: listOf()
                 MapboxRouteLineUtils.getTrafficLineExpression(
                     0.0,
-                    alternativeRoute1TrafficSegments,
+                    Color.TRANSPARENT,
                     routeLineOptions
                         .resourceProvider
                         .routeLineColorResources
-                        .alternativeRouteUnknownTrafficColor
+                        .alternativeRouteUnknownTrafficColor,
+                    alternativeRoute1TrafficSegments
                 )
             }
 
@@ -688,11 +812,12 @@ class MapboxRouteLineApi(
                     }
                 MapboxRouteLineUtils.getTrafficLineExpression(
                     0.0,
-                    alternativeRoute2TrafficSegments,
+                    Color.TRANSPARENT,
                     routeLineOptions
                         .resourceProvider
                         .routeLineColorResources
-                        .alternativeRouteUnknownTrafficColor
+                        .alternativeRouteUnknownTrafficColor,
+                    alternativeRoute2TrafficSegments
                 )
             }
 
@@ -750,4 +875,26 @@ class MapboxRouteLineApi(
             )
         )
     }
+
+    internal val deEmphasizeSegmentsNotInLeg: (
+        activeLegIndex: Int,
+        segments: List<RouteLineExpressionData>
+    ) -> List<RouteLineExpressionData> =
+        { activeLegIndex: Int, segments: List<RouteLineExpressionData> ->
+            segments.parallelMap(
+                {
+                    if (it.legIndex != activeLegIndex) {
+                        it.copy(
+                            segmentColor = routeLineOptions
+                                .resourceProvider
+                                .routeLineColorResources
+                                .deEmphasizeInActiveRouteLegsColor
+                        )
+                    } else {
+                        it
+                    }
+                },
+                jobControl.scope
+            )
+        }.cacheResult(2)
 }

@@ -73,7 +73,7 @@ import com.mapbox.navigation.ui.maps.route.line.model.RouteLine;
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineError;
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLineResources;
 import com.mapbox.navigation.ui.maps.route.line.model.RouteNotFound;
-import com.mapbox.navigation.ui.maps.route.line.model.VanishingRouteLineUpdateValue;
+import com.mapbox.navigation.ui.maps.route.line.model.RouteLineUpdateValue;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -436,7 +436,7 @@ public class MapboxRouteLineActivity extends AppCompatActivity implements OnMapL
   private ReplayProgressObserver replayProgressObserver = new ReplayProgressObserver(mapboxReplayer);
 
   private OnIndicatorPositionChangedListener onIndicatorPositionChangedListener = point -> {
-    Expected<RouteLineError, VanishingRouteLineUpdateValue> vanishingRouteLineData = mapboxRouteLineApi.updateTraveledRouteLine(point);
+    Expected<RouteLineError, RouteLineUpdateValue> vanishingRouteLineData = mapboxRouteLineApi.updateTraveledRouteLine(point);
     if (vanishingRouteLineData != null && mapboxMap.getStyle() != null) {
       mapboxRouteLineView.renderVanishingRouteLineUpdateValue(mapboxMap.getStyle(), vanishingRouteLineData);
     }
