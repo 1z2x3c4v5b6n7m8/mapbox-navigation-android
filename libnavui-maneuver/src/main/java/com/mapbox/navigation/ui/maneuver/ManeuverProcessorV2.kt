@@ -9,6 +9,7 @@ import com.mapbox.navigation.ui.maneuver.model.*
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.RuntimeException
+import kotlin.math.abs
 
 internal class ManeuverProcessorV2 {
     // Every time the API gets a route progress event, it finds if [RouteProgress.bannerInstruction]
@@ -81,12 +82,10 @@ internal class ManeuverProcessorV2 {
     fun process(action: ManeuverActionV2): ManeuverResultV2 {
         return when (action) {
             is ManeuverActionV2.GetManeuverListWithRoute -> {
-                //processManeuverList(action.route, action.routeLeg)
-                ManeuverResultV2.GetManeuverList.Failure("")
+                processManeuverList(action.route, action.routeLeg)
             }
             is ManeuverActionV2.GetManeuverList -> {
                 processManeuverList(action.routeProgress)
-                //ManeuverResultV2.GetManeuverListWithProgress.Failure("")
             }
         }
     }
@@ -95,26 +94,38 @@ internal class ManeuverProcessorV2 {
         route: DirectionsRoute,
         routeLeg: RouteLeg? = null
     ): ManeuverResultV2.GetManeuverList {
-        return getAllManeuverList(
+        Log.d("ABHISHEK", "-----DirectionsRoute START-----")
+        val x = getAllManeuverList(
             route,
             routeLeg,
             false
         ) as ManeuverResultV2.GetManeuverList
+        Log.d("ABHISHEK", "-----DirectionsRoute END-----")
+        return x
     }
 
     private fun processManeuverList(
         routeProgress: RouteProgress
     ): ManeuverResultV2.GetManeuverListWithProgress {
+        // TODO: Remove this when and don't depend on RouteProgressState
         return when (routeProgress.currentState) {
             INITIALIZED -> {
                 // Always return the complete maneuver list as stored in maneuverState.allManeuvers
-                getAllManeuverList(
+                Log.d("ABHISHEK", "-----INITIALIZED START-----")
+                val x = getAllManeuverList(
                     routeProgress.route,
                     routeProgress.currentLegProgress?.routeLeg,
                     true
                 ) as ManeuverResultV2.GetManeuverListWithProgress
+                Log.d("ABHISHEK", "-----INITIALIZED END-----")
+                x
             }
             TRACKING -> {
+                val x = getAllManeuverList(
+                    routeProgress.route,
+                    routeProgress.currentLegProgress?.routeLeg,
+                    true
+                ) as ManeuverResultV2.GetManeuverListWithProgress
                 val stepDistanceRemaining = getStepDistanceRemaining(routeProgress)
                 return when (val currentBanner = routeProgress.bannerInstructions) {
                     null -> {
@@ -126,7 +137,7 @@ internal class ManeuverProcessorV2 {
                         }
                     }
                     else -> {
-                        getManeuverListWith(routeProgress, currentBanner, stepDistanceRemaining)
+                        updateManeuverListWith(routeProgress, currentBanner, stepDistanceRemaining)
                     }
                 }
             }
@@ -194,16 +205,14 @@ internal class ManeuverProcessorV2 {
                     for (stepIndex in 0..legSteps.lastIndex) {
                         legSteps[stepIndex].bannerInstructions()?.let { bannerInstruction ->
                             val maneuverList = mutableListOf<ManeuverV2>()
-                            if (bannerInstruction.isNotEmpty()) {
-                                bannerInstruction.forEach { banner ->
-                                    maneuverList.add(transformToManeuver(banner))
-                                }
-                                val stepIndexToManeuvers = StepIndexToManeuvers(
-                                    stepIndex,
-                                    maneuverList
-                                )
-                                stepList.add(stepIndexToManeuvers)
+                            bannerInstruction.forEach { banner ->
+                                maneuverList.add(transformToManeuver(banner))
                             }
+                            val stepIndexToManeuvers = StepIndexToManeuvers(
+                                stepIndex,
+                                maneuverList
+                            )
+                            stepList.add(stepIndexToManeuvers)
                         } ?: throw RuntimeException("LegStep should have valid banner instructions")
                     }
                     allManeuvers.add(LegToManeuvers(routeLeg, stepList))
@@ -242,7 +251,7 @@ internal class ManeuverProcessorV2 {
         return maneuverList
     }
 
-    private fun getManeuverListWith(
+    private fun updateManeuverListWith(
         routeProgress: RouteProgress,
         bannerInstruction: BannerInstructions,
         stepDistanceRemaining: StepDistanceRemaining
@@ -251,40 +260,72 @@ internal class ManeuverProcessorV2 {
         val routeLeg = routeProgress.currentLegProgress?.routeLeg
         val stepIndex = routeProgress.currentLegProgress?.currentStepProgress?.stepIndex
         return ifNonNull(routeLeg, stepIndex) { leg, index ->
-            maneuverState.allManeuvers.find {
-                item -> item.routeLeg == leg
-            }?.let { legToManeuver ->
+            try {
+                val legToManeuver = leg.findIn(maneuverState.allManeuvers)
                 val stepToManeuverList = legToManeuver.stepIndexToManeuvers
-                stepToManeuverList.find { item ->
-                    item.stepIndex == index
-                }?.let { legStep ->
-                    maneuverListWithProgress.clear()
-                    if (legStep.maneuverList.size == 1) {
-                        // Update step distance remaining and return the maneuver at this index
-                        legStep.maneuverList[0].distanceRemaining = stepDistanceRemaining
-                        // Should we check if current maneuver is equal to maneuver at this index?
-                    } else {
-                        // Find the current maneuver in the list.
-                        for (i in 0..legStep.maneuverList.lastIndex) {
-                            if (currentManeuver.primary.text == legStep.maneuverList[i].primary.text) {
-                                legStep.maneuverList[i].distanceRemaining = stepDistanceRemaining
-                                break
-                            }
+                val legStep = index.findIn(stepToManeuverList)
+                val indexOfLegStep = stepToManeuverList.indexOf(legStep)
+                var maneuverIndex = -1
+                maneuverListWithProgress.clear()
+                if (legStep.maneuverList.size == 1) {
+                    legStep.maneuverList[0].distanceRemaining = stepDistanceRemaining
+                } else {
+                    for (i in 0..legStep.maneuverList.lastIndex) {
+                        if (currentManeuver.isEqual(legStep.maneuverList[i])) {
+                            maneuverIndex = i
+                            legStep.maneuverList[i].distanceRemaining = stepDistanceRemaining
+                            break
                         }
                     }
-                    stepToManeuverList.forEach { stepIndexToManeuver ->
-                        maneuverListWithProgress.addAll(stepIndexToManeuver.maneuverList)
-                    }
-                    ManeuverResultV2.GetManeuverListWithProgress.Success(maneuverListWithProgress)
-                } ?: ManeuverResultV2.GetManeuverListWithProgress.Failure(
-                    "Could not find the $stepIndex"
+                }
+                maneuverListWithProgress.addAll(
+                    updateListStartingAt(indexOfLegStep, stepToManeuverList, maneuverIndex)
                 )
-            } ?: ManeuverResultV2.GetManeuverListWithProgress.Failure(
-                "Could not find the $routeLeg"
-            )
+                ManeuverResultV2.GetManeuverListWithProgress.Success(maneuverListWithProgress)
+            } catch (exception: RuntimeException) {
+                ManeuverResultV2.GetManeuverListWithProgress.Failure(exception.message)
+            }
         } ?: ManeuverResultV2.GetManeuverListWithProgress.Failure(
             "$routeLeg and $stepIndex in $routeProgress cannot be null"
         )
+    }
+
+    private fun RouteLeg.findIn(legs: List<LegToManeuvers>): LegToManeuvers {
+        return legs.find {
+            it.routeLeg == this
+        } ?: throw RuntimeException("Could not find the $this")
+    }
+
+    private fun Int.findIn(steps: List<StepIndexToManeuvers>): StepIndexToManeuvers {
+        return steps.find {
+            it.stepIndex == this
+        } ?: throw RuntimeException("Could not find the $this")
+    }
+
+    private fun ManeuverV2.isEqual(other: ManeuverV2): Boolean {
+        return this.primary.text == other.primary.text &&
+            this.totalDistance.distance.equalsDelta(other.totalDistance.distance)
+    }
+
+    private fun Double.equalsDelta(other: Double): Boolean {
+        return abs(this/other - 1) < 0.1
+    }
+
+    private fun updateListStartingAt(
+        indexOfLegStep: Int,
+        stepToManeuverList: List<StepIndexToManeuvers>,
+        maneuverIndex: Int
+    ): List<ManeuverV2> {
+        val list = mutableListOf<ManeuverV2>()
+        for (i in indexOfLegStep..stepToManeuverList.lastIndex) {
+            val maneuverList = stepToManeuverList[i].maneuverList
+            if (maneuverList.size > 1 && maneuverIndex != -1) {
+                list.addAll(maneuverList.subList(maneuverIndex, maneuverList.size))
+            } else if (maneuverList.isNotEmpty() && maneuverList.size == 1) {
+                list.addAll(maneuverList)
+            }
+        }
+        return list
     }
 
     private fun transformToManeuver(
@@ -439,10 +480,19 @@ internal class ManeuverProcessorV2 {
     }
 
     /**
-     * - maneuverListWithProgress should be synchronized?
+     * - Should we check if current maneuver is equal to maneuver at this index?
+     * - write an extensive equals
+     * - route shield logic
+     * - get the last banner instruction from the current leg, update the step distance remaining and send it when you complete
+     *
+     *
+     *
+     *
+     * Answered
+     *
      * - if a user invokes getManeuverList(route) and getManeuverList(routeProgress) then both
-     *  the function first populates the entire list in maneuverstate.allManeuvers. Hence this
-     *  should also be synchronized?
+     *   the function first populates the entire list in maneuverstate.allManeuvers. Hence this
+     *   should also be synchronized?
      * - getManeuverList(route) returns list with every item in the list containing total step distance
      * - getManeuverList(routeProgress) returns list with every item in the list containing total step distance
      * except the first one which contains step distance remaining. If the user maintains the same callback

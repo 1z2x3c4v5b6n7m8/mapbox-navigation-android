@@ -146,6 +146,7 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
 
         override fun onManeuvers(maneuvers: Expected<List<ManeuverV2>, ManeuverError>) {
             //
+
         }
 
     }
@@ -165,12 +166,9 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
     }
 
     private val routeProgressObserver = RouteProgressObserver { routeProgress ->
+        maneuverApi.getManeuverList(routeProgress, callbackV2)
         routeArrowApi.addUpcomingManeuverArrow(routeProgress).apply {
             routeArrowView.renderManeuverUpdate(mapboxMap.getStyle()!!, this)
-        }
-        maneuverApi.getManeuverList(routeProgress, callbackV2)
-        if (isNavigating) {
-            //
         }
     }
 
@@ -184,7 +182,7 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 }
             }
             mapboxRoute = routes[0]
-            //maneuverApi.getManeuverList(routes[0], null, callbackV2)
+            maneuverApi.getManeuverList(routes[0], null, callbackV2)
             mapboxReplayer.stop()
             mapboxReplayer.clearEvents()
         }
@@ -245,7 +243,6 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         val replayEvents = ReplayRouteMapper().mapDirectionsRouteGeometry(route)
         mapboxReplayer.pushEvents(replayEvents)
         mapboxReplayer.seekTo(replayEvents.first())
-        mapboxReplayer.playbackSpeed(10.0)
         mapboxReplayer.play()
     }
 
@@ -344,8 +341,8 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.latitude
             )
             //val o = Point.fromLngLat(-0.117689, 51.530015)
-            val d = Point.fromLngLat(-98.089852, 46.837449)
-            findRoute(originPoint, d)
+            //val d = Point.fromLngLat(-98.089852, 46.837449)
+            findRoute(originPoint, point)
         }
         return false
     }
