@@ -3,19 +3,23 @@ package com.mapbox.navigation.core.trip.session
 import android.hardware.SensorEvent
 import android.location.Location
 import android.os.Looper
+import android.util.Log
 import com.mapbox.android.core.location.LocationEngineCallback
 import com.mapbox.android.core.location.LocationEngineResult
 import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
+import com.mapbox.api.directions.v5.models.RouteLeg
 import com.mapbox.api.directions.v5.models.VoiceInstructions
 import com.mapbox.base.common.logger.Logger
 import com.mapbox.base.common.logger.model.Message
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.base.trip.model.RouteLegProgress
 import com.mapbox.navigation.base.trip.model.RouteProgress
+import com.mapbox.navigation.base.trip.model.RouteProgressState
 import com.mapbox.navigation.base.trip.model.roadobject.UpcomingRoadObject
 import com.mapbox.navigation.core.internal.utils.isSameRoute
 import com.mapbox.navigation.core.internal.utils.isSameUuid
+import com.mapbox.navigation.core.navigator.*
 import com.mapbox.navigation.core.navigator.getMapMatcherResult
 import com.mapbox.navigation.core.navigator.getRouteInitInfo
 import com.mapbox.navigation.core.navigator.getRouteProgressFrom
@@ -573,11 +577,31 @@ internal class MapboxTripSession(
             val remainingWaypoints = ifNonNull(status.route?.routeOptions()?.coordinates()?.size) {
                 it - status.navigationStatus.nextWaypointIndex
             } ?: 0
+
+            route?.let {
+                ifNonNull(it.legs()) { legs ->
+                    val currentLeg = legs[status.navigationStatus.legIndex]
+                    ifNonNull(currentLeg?.steps()) { steps ->
+                        val currentStep = steps[status.navigationStatus.stepIndex]
+                        var bannerInstructions =
+                            status.navigationStatus.bannerInstruction?.mapToDirectionsApi(currentStep)
+                        val state = status.navigationStatus.routeState.convertState()
+                        if (state == RouteProgressState.INITIALIZED) {
+                            bannerInstructions =
+                                MapboxNativeNavigatorImpl.getBannerInstruction(0)
+                                    ?.mapToDirectionsApi(currentStep)
+                        }
+                        bannerInstructionEvent.isOccurring(bannerInstructions)
+                    }
+                }
+            }
             val routeProgress = getRouteProgressFrom(
                 status.route,
                 status.navigationStatus,
-                remainingWaypoints
+                remainingWaypoints,
+                bannerInstructionEvent.latestBannerInstructions
             )
+            Log.d("ABHISHEK", "bannerInstruction: ${routeProgress?.bannerInstructions}")
             updateRouteProgress(routeProgress)
             if (!isActive) {
                 return@launch
@@ -609,11 +633,10 @@ internal class MapboxTripSession(
         tripService.updateNotification(progress)
         progress?.let { progress ->
             routeProgressObservers.forEach { it.onRouteProgressChanged(progress) }
-            if (bannerInstructionEvent.isOccurring(progress)) {
-                checkBannerInstructionEvent { bannerInstruction ->
-                    bannerInstructionsObservers.forEach {
-                        it.onNewBannerInstructions(bannerInstruction)
-                    }
+            checkBannerInstructionEvent { bannerInstruction ->
+                Log.d("ABHISHEK", "checkBannerInstructionEvent: $bannerInstruction")
+                bannerInstructionsObservers.forEach {
+                    it.onNewBannerInstructions(bannerInstruction)
                 }
             }
             checkVoiceInstructionEvent(progress.voiceInstructions) { voiceInstruction ->

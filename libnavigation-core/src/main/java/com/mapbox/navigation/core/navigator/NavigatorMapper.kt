@@ -57,14 +57,16 @@ internal fun getRouteInitInfo(routeInfo: RouteInfo?) = routeInfo.toRouteInitInfo
 internal fun getRouteProgressFrom(
     directionsRoute: DirectionsRoute?,
     status: NavigationStatus,
-    remainingWaypoints: Int
+    remainingWaypoints: Int,
+    bannerInstructions: BannerInstructions?
 ): RouteProgress? {
-    return status.getRouteProgress(directionsRoute, remainingWaypoints)
+    return status.getRouteProgress(directionsRoute, remainingWaypoints, bannerInstructions)
 }
 
 private fun NavigationStatus.getRouteProgress(
     route: DirectionsRoute?,
-    remainingWaypoints: Int
+    remainingWaypoints: Int,
+    bannerInstructions: BannerInstructions?
 ): RouteProgress? {
     if (routeState == RouteState.INVALID) {
         return null
@@ -139,7 +141,7 @@ private fun NavigationStatus.getRouteProgress(
                     routeState.convertState().let {
                         routeProgressBuilder.currentState(it)
 
-                        var bannerInstructions =
+                        /*var bannerInstructions =
                             bannerInstruction?.mapToDirectionsApi(currentStep)
                         if (it == RouteProgressState.INITIALIZED) {
                             bannerInstructions =
@@ -147,7 +149,7 @@ private fun NavigationStatus.getRouteProgress(
                                     FIRST_BANNER_INSTRUCTION
                                 )
                                     ?.mapToDirectionsApi(currentStep)
-                        }
+                        }*/
                         routeProgressBuilder.bannerInstructions(bannerInstructions)
                     }
                 }
@@ -194,7 +196,7 @@ private fun NavigationStatus.getRouteProgress(
     return null
 }
 
-private fun BannerInstruction.mapToDirectionsApi(currentStep: LegStep): BannerInstructions {
+internal fun BannerInstruction.mapToDirectionsApi(currentStep: LegStep): BannerInstructions {
     return BannerInstructions.builder()
         .distanceAlongGeometry(this.remainingStepDistance.toDouble())
         .primary(this.primary.mapToDirectionsApi())
@@ -241,7 +243,7 @@ private fun VoiceInstruction.mapToDirectionsApi(): VoiceInstructions? {
         .build()
 }
 
-private fun RouteState.convertState(): RouteProgressState {
+internal fun RouteState.convertState(): RouteProgressState {
     return when (this) {
         RouteState.INVALID ->
             throw IllegalArgumentException("invalid route progress state not supported")
