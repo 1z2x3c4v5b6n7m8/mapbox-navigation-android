@@ -3,7 +3,6 @@ package com.mapbox.navigation.core.trip.session
 import android.hardware.SensorEvent
 import android.location.Location
 import android.os.Looper
-import android.util.Log
 import com.mapbox.android.core.location.LocationEngineCallback
 import com.mapbox.android.core.location.LocationEngineResult
 import com.mapbox.api.directions.v5.models.BannerInstructions
@@ -602,7 +601,6 @@ internal class MapboxTripSession(
                 remainingWaypoints,
                 bannerInstructionEvent.latestBannerInstructions
             )
-            Log.d("ABHISHEK", "bannerInstruction: ${routeProgress?.bannerInstructions}")
             updateRouteProgress(routeProgress, triggerObserver)
             if (!isActive) {
                 return@launch
@@ -639,7 +637,6 @@ internal class MapboxTripSession(
             routeProgressObservers.forEach { it.onRouteProgressChanged(progress) }
             if (shouldTriggerObserver) {
                 checkBannerInstructionEvent { bannerInstruction ->
-                    Log.d("ABHISHEK", "checkBannerInstructionEvent: $bannerInstruction")
                     bannerInstructionsObservers.forEach {
                         it.onNewBannerInstructions(bannerInstruction)
                     }
