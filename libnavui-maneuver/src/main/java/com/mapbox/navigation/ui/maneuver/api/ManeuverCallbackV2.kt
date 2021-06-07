@@ -1,8 +1,6 @@
 package com.mapbox.navigation.ui.maneuver.api
 
-import android.graphics.Bitmap
-import com.mapbox.api.directions.v5.models.DirectionsRoute
-import com.mapbox.navigation.ui.base.model.Expected
+import com.mapbox.bindgen.Expected
 import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
 

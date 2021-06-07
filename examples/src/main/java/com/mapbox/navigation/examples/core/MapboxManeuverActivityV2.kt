@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.RouteOptions
+import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
@@ -42,7 +43,6 @@ import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
 import com.mapbox.navigation.examples.core.databinding.LayoutActivityManeuverBinding
 import com.mapbox.navigation.examples.core.databinding.LayoutActivityManeuverTwoBinding
-import com.mapbox.navigation.ui.base.model.Expected
 import com.mapbox.navigation.ui.maneuver.api.*
 import com.mapbox.navigation.ui.maneuver.model.*
 import com.mapbox.navigation.ui.maps.internal.route.line.MapboxRouteLineApiExtensions.setRoutes

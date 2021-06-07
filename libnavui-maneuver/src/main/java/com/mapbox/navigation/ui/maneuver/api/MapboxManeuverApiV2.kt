@@ -4,9 +4,9 @@ import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.LegStep
 import com.mapbox.api.directions.v5.models.RouteLeg
+import com.mapbox.bindgen.Expected
 import com.mapbox.navigation.base.formatter.DistanceFormatter
 import com.mapbox.navigation.base.trip.model.RouteProgress
-import com.mapbox.navigation.ui.base.model.Expected
 import com.mapbox.navigation.ui.maneuver.ManeuverActionV2
 import com.mapbox.navigation.ui.maneuver.ManeuverProcessorV2
 import com.mapbox.navigation.ui.maneuver.ManeuverResultV2
@@ -87,18 +87,18 @@ class MapboxManeuverApiV2 internal constructor(
         when (val result = processor.process(action) as
             ManeuverResultV2.GetManeuverListWithProgress) {
             is ManeuverResultV2.GetManeuverListWithProgress.Success -> {
-                callback.onManeuversWithProgress(Expected.Success(result.maneuvers))
-                callback.onManeuver(Expected.Success(result.maneuvers[0]))
+                //callback.onManeuversWithProgress(Expected.Success(result.maneuvers))
+                //callback.onManeuver(Expected.(result.maneuvers[0]))
             }
             is ManeuverResultV2.GetManeuverListWithProgress.Failure -> {
-                callback.onError(Expected.Failure(ManeuverError(result.error, null)))
+                //callback.onError(Expected.Failure(ManeuverError(result.error, null)))
             }
             else -> {
-                callback.onError(
+                /*callback.onError(
                     Expected.Failure(
                         ManeuverError("Inappropriate  $result emitted for $action.", null)
                     )
-                )
+                )*/
             }
         }
     }
