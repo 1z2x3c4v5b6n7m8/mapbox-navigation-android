@@ -578,6 +578,7 @@ internal class MapboxTripSession(
                 it - status.navigationStatus.nextWaypointIndex
             } ?: 0
 
+            var triggerObserver = false
             route?.let {
                 ifNonNull(it.legs()) { legs ->
                     val currentLeg = legs[status.navigationStatus.legIndex]
@@ -591,7 +592,7 @@ internal class MapboxTripSession(
                                 MapboxNativeNavigatorImpl.getBannerInstruction(0)
                                     ?.mapToDirectionsApi(currentStep)
                         }
-                        bannerInstructionEvent.isOccurring(bannerInstructions)
+                        triggerObserver = bannerInstructionEvent.isOccurring(bannerInstructions)
                     }
                 }
             }
@@ -602,7 +603,7 @@ internal class MapboxTripSession(
                 bannerInstructionEvent.latestBannerInstructions
             )
             Log.d("ABHISHEK", "bannerInstruction: ${routeProgress?.bannerInstructions}")
-            updateRouteProgress(routeProgress)
+            updateRouteProgress(routeProgress, triggerObserver)
             if (!isActive) {
                 return@launch
             }
@@ -628,15 +629,20 @@ internal class MapboxTripSession(
         mapMatcherResultObservers.forEach { it.onNewMapMatcherResult(mapMatcherResult) }
     }
 
-    private fun updateRouteProgress(progress: RouteProgress?) {
+    private fun updateRouteProgress(
+        progress: RouteProgress?,
+        shouldTriggerObserver: Boolean
+    ) {
         routeProgress = progress
         tripService.updateNotification(progress)
         progress?.let { progress ->
             routeProgressObservers.forEach { it.onRouteProgressChanged(progress) }
-            checkBannerInstructionEvent { bannerInstruction ->
-                Log.d("ABHISHEK", "checkBannerInstructionEvent: $bannerInstruction")
-                bannerInstructionsObservers.forEach {
-                    it.onNewBannerInstructions(bannerInstruction)
+            if (shouldTriggerObserver) {
+                checkBannerInstructionEvent { bannerInstruction ->
+                    Log.d("ABHISHEK", "checkBannerInstructionEvent: $bannerInstruction")
+                    bannerInstructionsObservers.forEach {
+                        it.onNewBannerInstructions(bannerInstruction)
+                    }
                 }
             }
             checkVoiceInstructionEvent(progress.voiceInstructions) { voiceInstruction ->
