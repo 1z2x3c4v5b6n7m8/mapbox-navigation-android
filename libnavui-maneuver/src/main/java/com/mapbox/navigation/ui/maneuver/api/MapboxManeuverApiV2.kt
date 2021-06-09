@@ -1,10 +1,12 @@
 package com.mapbox.navigation.ui.maneuver.api
 
+import android.util.Log
 import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.LegStep
 import com.mapbox.api.directions.v5.models.RouteLeg
 import com.mapbox.bindgen.Expected
+import com.mapbox.bindgen.ExpectedFactory
 import com.mapbox.navigation.base.formatter.DistanceFormatter
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.ui.maneuver.ManeuverActionV2
@@ -14,6 +16,7 @@ import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
 import com.mapbox.navigation.utils.internal.JobControl
 import com.mapbox.navigation.utils.internal.ThreadController
+import com.mapbox.navigation.utils.internal.ifNonNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -52,23 +55,16 @@ class MapboxManeuverApiV2 internal constructor(
         val action = ManeuverActionV2.GetManeuverListWithRoute(route, routeLeg, distanceFormatter)
         when (val result = processor.process(action) as ManeuverResultV2.GetManeuverList) {
             is ManeuverResultV2.GetManeuverList.Success -> {
-                /*val allManeuvers = result.maneuvers
-                callback.onManeuvers(Expected.Success(allManeuvers))
-                // Go through all the maneuvers in this list and request route shields
-                routeShieldJob  = mainJobController.scope.launch {
-                    val routeShields = processor.requestShields(allManeuvers)
-                    callback.onRouteShield(Expected.Success(routeShields))
-                }*/
+                val allManeuvers = result.maneuvers
+                callback.onManeuvers(ExpectedFactory.createValue(allManeuvers))
             }
             is ManeuverResultV2.GetManeuverList.Failure -> {
-                //callback.onError(Expected.Failure(ManeuverError(result.error, null)))
+                callback.onError(ExpectedFactory.createError(ManeuverError(result.error)))
             }
             else -> {
-                /*callback.onError(
-                    Expected.Failure(
-                        ManeuverError("Inappropriate  $result emitted for $action.", null)
-                    )
-                )*/
+                callback.onError(ExpectedFactory.createError(ManeuverError(
+                    "Inappropriate  $result emitted for $action.", null
+                )))
             }
         }
     }
@@ -87,18 +83,16 @@ class MapboxManeuverApiV2 internal constructor(
         when (val result = processor.process(action) as
             ManeuverResultV2.GetManeuverListWithProgress) {
             is ManeuverResultV2.GetManeuverListWithProgress.Success -> {
-                //callback.onManeuversWithProgress(Expected.Success(result.maneuvers))
-                //callback.onManeuver(Expected.(result.maneuvers[0]))
+                val allManeuvers = result.maneuvers
+                callback.onManeuvers(ExpectedFactory.createValue(allManeuvers))
             }
             is ManeuverResultV2.GetManeuverListWithProgress.Failure -> {
-                //callback.onError(Expected.Failure(ManeuverError(result.error, null)))
+                callback.onError(ExpectedFactory.createError(ManeuverError(result.error)))
             }
             else -> {
-                /*callback.onError(
-                    Expected.Failure(
-                        ManeuverError("Inappropriate  $result emitted for $action.", null)
-                    )
-                )*/
+                callback.onError(ExpectedFactory.createError(ManeuverError(
+                    "Inappropriate  $result emitted for $action.", null
+                )))
             }
         }
     }

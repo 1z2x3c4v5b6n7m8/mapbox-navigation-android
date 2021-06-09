@@ -126,29 +126,17 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
     private val replayProgressObserver = ReplayProgressObserver(mapboxReplayer)
 
     private val callbackV2 = object : ManeuverCallbackV2 {
-        override fun onError(error: Expected<ManeuverV2, ManeuverError>) {
+        override fun onError(error: Expected<ManeuverError, ManeuverV2>) {
             //
         }
 
-        override fun onManeuver(maneuver: Expected<ManeuverV2, ManeuverError>) {
+        override fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
             //
         }
 
-        override fun onManeuversWithProgress(maneuvers: Expected<List<ManeuverV2>, ManeuverError>) {
+        override fun onManeuversWithShields(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
             //
         }
-
-        override fun onRouteShield(
-            routeShieldMap: Expected<HashMap<ManeuverV2, ByteArray?>, ManeuverError>
-        ) {
-            //
-        }
-
-        override fun onManeuvers(maneuvers: Expected<List<ManeuverV2>, ManeuverError>) {
-            //
-
-        }
-
     }
 
     private val locationObserver = object : LocationObserver {
@@ -340,9 +328,10 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.longitude,
                 currentLocation.latitude
             )
-            //val o = Point.fromLngLat(-0.117689, 51.530015)
-            //val d = Point.fromLngLat(-98.089852, 46.837449)
             findRoute(originPoint, point)
+            //val o = Point.fromLngLat(-121.98198458807478, 37.529766392226776)
+            //val d = Point.fromLngLat(-121.97966757718049, 37.52396897764474)
+            //findRoute(o, d)
         }
         return false
     }

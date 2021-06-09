@@ -140,16 +140,6 @@ private fun NavigationStatus.getRouteProgress(
 
                     routeState.convertState().let {
                         routeProgressBuilder.currentState(it)
-
-                        /*var bannerInstructions =
-                            bannerInstruction?.mapToDirectionsApi(currentStep)
-                        if (it == RouteProgressState.INITIALIZED) {
-                            bannerInstructions =
-                                MapboxNativeNavigatorImpl.getBannerInstruction(
-                                    FIRST_BANNER_INSTRUCTION
-                                )
-                                    ?.mapToDirectionsApi(currentStep)
-                        }*/
                         routeProgressBuilder.bannerInstructions(bannerInstructions)
                     }
                 }

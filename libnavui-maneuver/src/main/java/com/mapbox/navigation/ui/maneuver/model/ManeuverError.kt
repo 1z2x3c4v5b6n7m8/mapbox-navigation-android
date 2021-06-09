@@ -8,5 +8,5 @@ package com.mapbox.navigation.ui.maneuver.model
  */
 class ManeuverError internal constructor(
     val errorMessage: String?,
-    val throwable: Throwable?
+    val throwable: Throwable? = null
 )
