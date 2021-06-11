@@ -1,11 +1,9 @@
 package com.mapbox.navigation.ui.maneuver.api
 
-import android.util.Log
 import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.LegStep
 import com.mapbox.api.directions.v5.models.RouteLeg
-import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.ExpectedFactory
 import com.mapbox.navigation.base.formatter.DistanceFormatter
 import com.mapbox.navigation.base.trip.model.RouteProgress
@@ -16,7 +14,6 @@ import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
 import com.mapbox.navigation.utils.internal.JobControl
 import com.mapbox.navigation.utils.internal.ThreadController
-import com.mapbox.navigation.utils.internal.ifNonNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -99,6 +96,14 @@ class MapboxManeuverApiV2 internal constructor(
         }
     }
 
+    // TODO: Add resubscribe logic
+    // The view needs to maintain the Map<String, RoadShield> so that it doesn't blink.
+    // The above change will have to be done on the view. The API already sends the map through
+    // the callback.
+    // TODO: Move the state from Processor to API
+    // TODO: Write unit tests
+    // TODO: Remove legacy maneuver classes
+    // TODO: Test off-route, multiLeg and other geographies
     fun getRoadShields(
         maneuvers: List<ManeuverV2>,
         callback: RoadShieldCallback,
