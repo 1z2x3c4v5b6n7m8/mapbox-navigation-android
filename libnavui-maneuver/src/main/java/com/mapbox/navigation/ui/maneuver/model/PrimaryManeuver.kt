@@ -26,6 +26,7 @@ import com.mapbox.api.directions.v5.models.BannerInstructions
  * }
  *
  * A simplified data structure representing [BannerInstructions.primary]
+ * @property id String A unique id
  * @property text String Plain text with all the [BannerComponents] text combined.
  * @property type String? indicates the type of maneuver.
  * @property degrees Double? degrees at which you will be exiting a roundabout.
@@ -37,6 +38,7 @@ import com.mapbox.api.directions.v5.models.BannerInstructions
  */
 
 class PrimaryManeuver private constructor(
+    val id: String,
     val text: String,
     val type: String? = null,
     val degrees: Double? = null,
@@ -96,6 +98,7 @@ class PrimaryManeuver private constructor(
      */
     fun toBuilder(): Builder {
         return Builder()
+            .id(id)
             .text(text)
             .type(type)
             .degrees(degrees)
@@ -106,6 +109,7 @@ class PrimaryManeuver private constructor(
 
     /**
      * Build a new [PrimaryManeuver]
+     * @property id String
      * @property text String
      * @property type String?
      * @property degrees Double?
@@ -114,12 +118,21 @@ class PrimaryManeuver private constructor(
      * @property componentList List<Component>
      */
     class Builder {
+        private var id: String = ""
         private var text: String = ""
         private var type: String? = null
         private var degrees: Double? = null
         private var modifier: String? = null
         private var drivingSide: String? = null
         private var componentList: List<Component> = listOf()
+
+        /**
+         * apply id to the Builder.
+         * @param id String
+         * @return Builder
+         */
+        fun id(id: String): Builder =
+            apply { this.id = id }
 
         /**
          * apply text to the Builder.
@@ -175,6 +188,7 @@ class PrimaryManeuver private constructor(
          */
         fun build(): PrimaryManeuver {
             return PrimaryManeuver(
+                id,
                 text,
                 type,
                 degrees,

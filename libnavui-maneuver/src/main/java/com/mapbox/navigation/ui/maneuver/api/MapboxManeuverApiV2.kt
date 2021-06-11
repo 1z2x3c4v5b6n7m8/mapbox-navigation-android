@@ -62,9 +62,11 @@ class MapboxManeuverApiV2 internal constructor(
                 callback.onError(ExpectedFactory.createError(ManeuverError(result.error)))
             }
             else -> {
-                callback.onError(ExpectedFactory.createError(ManeuverError(
-                    "Inappropriate  $result emitted for $action.", null
-                )))
+                callback.onError(
+                    ExpectedFactory.createError(ManeuverError(
+                        "Inappropriate  $result emitted for $action.", null)
+                    )
+                )
             }
         }
     }
@@ -97,7 +99,20 @@ class MapboxManeuverApiV2 internal constructor(
         }
     }
 
-    fun cancel() {
+    fun getRoadShields(endIndex: Int, startIndex: Int, maneuvers: List<ManeuverV2>) {
+        if (routeShieldJob == null ||
+            (routeShieldJob != null && routeShieldJob!!.isCompleted && !routeShieldJob!!.isActive)
+        ) {
+            routeShieldJob = mainJobController.scope.launch {
+                val result = processor.processRoadShields(endIndex, startIndex, maneuvers)
+                when (result) {
+                    is ManeuverResultV2.GetRoadShields.Success -> {
+                    }
+                    is ManeuverResultV2.GetRoadShields.Failure -> {
 
+                    }
+                }
+            }
+        }
     }
 }

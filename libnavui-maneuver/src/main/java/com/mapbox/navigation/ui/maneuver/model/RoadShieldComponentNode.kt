@@ -7,8 +7,7 @@ import com.mapbox.api.directions.v5.models.BannerText
  * [ComponentNode] of the type [BannerComponents.ICON]
  * @property text String holds [BannerComponents.text] contained inside [BannerComponents]
  * of type [BannerComponents.ICON]
- * @property shieldIcon ByteArray contains the svg representation of the freeway number given an
- * appropriate url else null.
+ * @property roadShield RoadShield contains roadshield information.
  *
  * E.g.
  * For the given [BannerText]
@@ -41,18 +40,13 @@ import com.mapbox.api.directions.v5.models.BannerText
  *      "modifier": "right",
  *      "text": "Exit 23 I-880 / Nimitz Freeway"
  * }
- *
- * text = "I-880"
- * startIndex = 6
- * i.e.
- * components[0].text.length +
- * components[1].text.length
  */
 
 class RoadShieldComponentNode private constructor(
     val text: String,
     val shieldUrl: String? = null,
-    var shieldIcon: ByteArray? = null
+    val shieldIcon: ByteArray? = null,
+    val roadShield: RoadShield
 ) : ComponentNode {
 
     /**
@@ -65,11 +59,7 @@ class RoadShieldComponentNode private constructor(
         other as RoadShieldComponentNode
 
         if (text != other.text) return false
-        if (shieldUrl != other.shieldUrl) return false
-        if (shieldIcon != null) {
-            if (other.shieldIcon == null) return false
-            if (!shieldIcon.contentEquals(other.shieldIcon)) return false
-        } else if (other.shieldIcon != null) return false
+        if (roadShield != other.roadShield) return false
 
         return true
     }
@@ -79,8 +69,7 @@ class RoadShieldComponentNode private constructor(
      */
     override fun hashCode(): Int {
         var result = text.hashCode()
-        result = 31 * result + shieldUrl.hashCode()
-        result = 31 * result + (shieldIcon?.contentHashCode() ?: 0)
+        result = 31 * result + (roadShield.hashCode() ?: 0)
         return result
     }
 
@@ -88,12 +77,9 @@ class RoadShieldComponentNode private constructor(
      * Returns a string representation of the object.
      */
     override fun toString(): String {
-        return "RoadShieldComponentNode(" +
-            "text='$text', " +
-            "shieldUrl='$shieldUrl', " +
-            "shieldIcon=${shieldIcon?.contentToString()}" +
-            ")"
+        return "RoadShieldComponentNode(text='$text', roadShield=$roadShield)"
     }
+
 
     /**
      * @return builder matching the one used to create this instance
@@ -101,8 +87,7 @@ class RoadShieldComponentNode private constructor(
     fun toBuilder(): Builder {
         return Builder()
             .text(text)
-            .shieldUrl(shieldUrl)
-            .shieldIcon(shieldIcon)
+            .roadShield(roadShield)
     }
 
     /**
@@ -114,6 +99,7 @@ class RoadShieldComponentNode private constructor(
         private var text: String = ""
         private var shieldUrl: String? = null
         private var shieldIcon: ByteArray? = null
+        private var roadShield: RoadShield = RoadShield()
 
         /**
          * apply text to the Builder.
@@ -124,20 +110,28 @@ class RoadShieldComponentNode private constructor(
             apply { this.text = text }
 
         /**
-         * apply shieldUrl to the Builder.
-         * @param shieldUrl String?
+         * apply text to the Builder.
+         * @param text String
          * @return Builder
          */
         fun shieldUrl(shieldUrl: String?): Builder =
             apply { this.shieldUrl = shieldUrl }
 
         /**
-         * apply shieldIcon to the Builder.
-         * @param shieldIcon ByteArray?
+         * apply text to the Builder.
+         * @param text String
          * @return Builder
          */
         fun shieldIcon(shieldIcon: ByteArray?): Builder =
             apply { this.shieldIcon = shieldIcon }
+
+        /**
+         * apply roadShield to the Builder.
+         * @param roadShield RoadShield?
+         * @return Builder
+         */
+        fun roadShield(roadShield: RoadShield): Builder =
+            apply { this.roadShield = roadShield }
 
         /**
          * Build the [RoadShieldComponentNode]
@@ -146,8 +140,9 @@ class RoadShieldComponentNode private constructor(
         fun build(): RoadShieldComponentNode {
             return RoadShieldComponentNode(
                 text,
-                shieldUrl,
-                shieldIcon
+                null,
+                null,
+                roadShield,
             )
         }
     }

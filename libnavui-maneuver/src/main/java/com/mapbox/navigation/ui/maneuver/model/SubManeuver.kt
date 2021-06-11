@@ -26,6 +26,7 @@ import com.mapbox.api.directions.v5.models.BannerInstructions
  * }
  *
  * A simplified data structure representing [BannerInstructions.sub]
+ * @property id String A unique id
  * @property text String Plain text with all the [BannerComponents] text combined.
  * @property type String? indicates the type of maneuver.
  * @property degrees Double? degrees at which you will be exiting a roundabout.
@@ -36,6 +37,7 @@ import com.mapbox.api.directions.v5.models.BannerInstructions
  * @constructor
  */
 class SubManeuver private constructor(
+    val id: String,
     val text: String,
     val type: String? = null,
     val degrees: Double? = null,
@@ -95,6 +97,7 @@ class SubManeuver private constructor(
      */
     fun toBuilder(): Builder {
         return Builder()
+            .id(id)
             .text(text)
             .type(type)
             .degrees(degrees)
@@ -105,6 +108,7 @@ class SubManeuver private constructor(
 
     /**
      * Build a new [SubManeuver]
+     * @property id String
      * @property text String
      * @property type String?
      * @property degrees Double?
@@ -113,12 +117,21 @@ class SubManeuver private constructor(
      * @property componentList List<Component>
      */
     class Builder {
+        private var id: String = ""
         private var text: String = ""
         private var type: String? = null
         private var degrees: Double? = null
         private var modifier: String? = null
         private var drivingSide: String? = null
         private var componentList: List<Component> = listOf()
+
+        /**
+         * apply id to the Builder.
+         * @param id Long
+         * @return Builder
+         */
+        fun id(id: String): Builder =
+            apply { this.id = id }
 
         /**
          * apply text to the Builder.
@@ -174,6 +187,7 @@ class SubManeuver private constructor(
          */
         fun build(): SubManeuver {
             return SubManeuver(
+                id,
                 text,
                 type,
                 degrees,

@@ -1,63 +1,91 @@
 package com.mapbox.navigation.ui.maneuver
 
-import android.util.Log
-import com.mapbox.api.directions.v5.models.*
+import com.mapbox.api.directions.v5.models.BannerComponents
+import com.mapbox.api.directions.v5.models.BannerInstructions
+import com.mapbox.api.directions.v5.models.BannerText
+import com.mapbox.api.directions.v5.models.DirectionsRoute
+import com.mapbox.api.directions.v5.models.RouteLeg
+import com.mapbox.common.HttpMethod
+import com.mapbox.common.HttpRequest
+import com.mapbox.common.UAComponents
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.internal.utils.isSameRoute
+import com.mapbox.navigation.ui.maneuver.RoadShieldDownloader.downloadImage
 import com.mapbox.navigation.ui.maneuver.model.*
+import com.mapbox.navigation.ui.maneuver.model.LegToManeuvers
+import com.mapbox.navigation.ui.maneuver.model.StepIndexToManeuvers
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.UUID
 import kotlin.RuntimeException
 
 internal class ManeuverProcessorV2 {
 
     private val maneuverState = ManeuverState()
+    private val urlToShieldMap = hashMapOf<String, ByteArray?>()
 
-    /*suspend fun requestShields(
+    fun process(action: ManeuverActionV2): ManeuverResultV2 {
+        return when (action) {
+            is ManeuverActionV2.GetManeuverListWithRoute -> {
+                processManeuverList(action.route, action.routeLeg)
+            }
+            is ManeuverActionV2.GetManeuverList -> {
+                processManeuverList(action.routeProgress)
+            }
+            else -> {
+                ManeuverResultV2.GetManeuverListWithProgress.Failure("")
+            }
+        }
+    }
+
+    suspend fun processRoadShields(
+        endIndex: Int,
+        startIndex: Int,
         maneuvers: List<ManeuverV2>
-    ): HashMap<ManeuverV2, ByteArray?> {
-        val routeShieldMap = hashMapOf<ManeuverV2, ByteArray?>()
-        maneuvers.forEach { maneuverV2 ->
-            val primaryComponents = maneuverV2.primary.componentList
-            primaryComponents.forEach { component ->
-                val node = component.node
-                if (node is RoadShieldComponentNode) {
-                    val shield = downloadShield(node)
-                    routeShieldMap[maneuverV2] = shield
+    ) : ManeuverResultV2.GetRoadShields {
+        return try {
+            for (i in startIndex..endIndex) {
+                val maneuver = maneuvers[i]
+                downloadShield(maneuver.primary.id, maneuver.primary.componentList)
+                val secondaryManeuver = maneuver.secondary
+                ifNonNull(secondaryManeuver) { secondary ->
+                    downloadShield(secondary.id, secondary.componentList)
+                }
+                val subManeuver = maneuver.sub
+                ifNonNull(subManeuver) { sub ->
+                    downloadShield(sub.id, sub.componentList)
                 }
             }
-            val secondaryComponents = maneuverV2.secondary?.componentList
-            secondaryComponents?.forEach { component ->
-                val node = component.node
-                if (node is RoadShieldComponentNode) {
-                    val shield = downloadShield(node)
-                    routeShieldMap[maneuverV2] = shield
-                }
-            }
-            val subComponents = maneuverV2.sub?.componentList
-            subComponents?.forEach { component ->
-                val node = component.node
-                if (node is RoadShieldComponentNode) {
-                    val shield = downloadShield(node)
-                    routeShieldMap[maneuverV2] = shield
+            ManeuverResultV2.GetRoadShields.Success(maneuverState.roadShields)
+        } catch (exception: Exception) {
+            ManeuverResultV2.GetRoadShields.Failure(exception.message)
+        }
+    }
+
+    private suspend fun downloadShield(id: String, components: List<Component>) {
+        if (maneuverState.roadShields[id]?.shieldIcon == null) {
+            components.forEach { component ->
+                if (component.node is RoadShieldComponentNode) {
+                    maneuverState.roadShields[id] = downloadShield(component.node)
                 }
             }
         }
-        maneuverState.allShields = routeShieldMap
-        return maneuverState.allShields
-    }*/
+    }
 
-    /*private suspend fun downloadShield(node: RoadShieldComponentNode): ByteArray? {
-        return ifNonNull(node.shieldUrl) { url ->
-            val roadShieldRequest = getHttpRequest(url)
-            val routeShield = downloadImage(roadShieldRequest).data
-            ifNonNull(routeShield) { shield ->
-                shield
+    private suspend fun downloadShield(node: RoadShieldComponentNode): RoadShield {
+        node.roadShield.shieldIcon = ifNonNull(node.roadShield.shieldUrl) { url ->
+            if (urlToShieldMap[url] != null) {
+                urlToShieldMap[url]
+            } else {
+                val roadShieldRequest = getHttpRequest(url)
+                val roadShield = downloadImage(roadShieldRequest).data
+                urlToShieldMap[url] = roadShield
+                roadShield
             }
         }
-    }*/
+        return node.roadShield
+    }
 
-    /*private fun getHttpRequest(imageBaseUrl: String): HttpRequest {
+    private fun getHttpRequest(imageBaseUrl: String): HttpRequest {
         return HttpRequest.Builder()
             .url(imageBaseUrl.plus(SVG))
             .body(byteArrayOf())
@@ -69,19 +97,6 @@ internal class ManeuverProcessorV2 {
                     .build()
             )
             .build()
-    }*/
-
-    fun process(action: ManeuverActionV2): ManeuverResultV2 {
-        return when (action) {
-            is ManeuverActionV2.GetManeuverListWithRoute -> {
-                //processManeuverList(action.route, action.routeLeg)
-                ManeuverResultV2.GetManeuverList.Failure("")
-            }
-            is ManeuverActionV2.GetManeuverList -> {
-                processManeuverList(action.routeProgress)
-                //ManeuverResultV2.GetManeuverListWithProgress.Failure("")
-            }
-        }
     }
 
     private fun processManeuverList(
@@ -91,6 +106,8 @@ internal class ManeuverProcessorV2 {
         if (!route.isSameRoute(maneuverState.route)) {
             maneuverState.route = route
             maneuverState.allManeuvers.clear()
+            maneuverState.roadShields.clear()
+            urlToShieldMap.clear()
             try {
                 createManeuverList(route)
             } catch (exception: RuntimeException) {
@@ -119,6 +136,8 @@ internal class ManeuverProcessorV2 {
                 if (!route.isSameRoute(maneuverState.route)) {
                     maneuverState.route = route
                     maneuverState.allManeuvers.clear()
+                    maneuverState.roadShields.clear()
+                    urlToShieldMap.clear()
                     createManeuverList(route)
                 }
                 val filteredList = ifNonNull(stepIndex, routeLeg) { index, leg ->
@@ -256,9 +275,9 @@ internal class ManeuverProcessorV2 {
         } else {
             for (i in indexOfLegStep..inputList.lastIndex) {
                 val maneuverList = inputList[i].maneuverList
-                if (maneuverList.size > 1 && maneuverIndex != Int.MIN_VALUE) {
+                if (i == indexOfLegStep && maneuverList.size > 1) {
                     list.addAll(maneuverList.subList(maneuverIndex, maneuverList.size))
-                } else if (maneuverList.isNotEmpty() && maneuverList.size == 1) {
+                } else {
                     list.addAll(maneuverList)
                 }
             }
@@ -301,6 +320,7 @@ internal class ManeuverProcessorV2 {
             true -> {
                 PrimaryManeuver
                     .Builder()
+                    .id(UUID.randomUUID().toString())
                     .text(bannerText.text())
                     .type(bannerText.type())
                     .degrees(bannerText.degrees())
@@ -321,6 +341,7 @@ internal class ManeuverProcessorV2 {
             true -> {
                 SecondaryManeuver
                     .Builder()
+                    .id(UUID.randomUUID().toString())
                     .text(bannerText.text())
                     .type(bannerText.type())
                     .degrees(bannerText.degrees())
@@ -343,6 +364,7 @@ internal class ManeuverProcessorV2 {
                     true -> {
                         SubManeuver
                             .Builder()
+                            .id(UUID.randomUUID().toString())
                             .text(bannerText.text())
                             .type(bannerText.type())
                             .degrees(bannerText.degrees())
@@ -400,8 +422,7 @@ internal class ManeuverProcessorV2 {
                     val roadShield = RoadShieldComponentNode
                         .Builder()
                         .text(component.text())
-                        .shieldUrl(component.imageBaseUrl())
-                        .shieldIcon(null)
+                        .roadShield(RoadShield(component.imageBaseUrl(), null))
                         .build()
                     componentList.add(Component(BannerComponents.ICON, roadShield))
                 }

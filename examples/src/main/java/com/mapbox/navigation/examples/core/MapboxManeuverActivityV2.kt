@@ -131,7 +131,9 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         }
 
         override fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
-            //
+            ifNonNull (maneuvers.value ) { list ->
+                maneuverApi.getRoadShields(1, 0, list)
+            }
         }
 
         override fun onManeuversWithShields(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
@@ -170,7 +172,7 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 }
             }
             mapboxRoute = routes[0]
-            maneuverApi.getManeuverList(routes[0], null, callbackV2)
+            //maneuverApi.getManeuverList(routes[0], null, callbackV2)
             mapboxReplayer.stop()
             mapboxReplayer.clearEvents()
         }
@@ -328,7 +330,12 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.longitude,
                 currentLocation.latitude
             )
-            findRoute(originPoint, point)
+            //findRoute(originPoint, point)
+            // Route with multiple maneuver at both first and last
+            val o = Point.fromLngLat(-121.981985, 37.529766)
+            val d = Point.fromLngLat(-121.986208, 37.522779)
+            findRoute(o, d)
+            // Route with multiple maneuver at only last
             //val o = Point.fromLngLat(-121.98198458807478, 37.529766392226776)
             //val d = Point.fromLngLat(-121.97966757718049, 37.52396897764474)
             //findRoute(o, d)
