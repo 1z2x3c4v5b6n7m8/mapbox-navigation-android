@@ -125,6 +125,16 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
 
     private val replayProgressObserver = ReplayProgressObserver(mapboxReplayer)
 
+    private val roadShieldCallback = RoadShieldCallback { result ->
+        result.fold( { error ->
+
+        }, { roadShield ->
+            roadShield.forEach { (key, value) ->
+
+            }
+        })
+    }
+
     private val callbackV2 = object : ManeuverCallbackV2 {
         override fun onError(error: Expected<ManeuverError, ManeuverV2>) {
             //
@@ -132,7 +142,7 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
 
         override fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
             ifNonNull (maneuvers.value ) { list ->
-                maneuverApi.getRoadShields(1, 0, list)
+                maneuverApi.getRoadShields(list, roadShieldCallback)
             }
         }
 

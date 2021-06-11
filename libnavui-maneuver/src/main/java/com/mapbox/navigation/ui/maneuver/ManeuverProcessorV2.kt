@@ -38,8 +38,8 @@ internal class ManeuverProcessorV2 {
     }
 
     suspend fun processRoadShields(
-        endIndex: Int,
         startIndex: Int,
+        endIndex: Int,
         maneuvers: List<ManeuverV2>
     ) : ManeuverResultV2.GetRoadShields {
         return try {

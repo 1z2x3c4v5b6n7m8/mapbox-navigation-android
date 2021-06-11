@@ -99,17 +99,24 @@ class MapboxManeuverApiV2 internal constructor(
         }
     }
 
-    fun getRoadShields(endIndex: Int, startIndex: Int, maneuvers: List<ManeuverV2>) {
+    fun getRoadShields(
+        maneuvers: List<ManeuverV2>,
+        callback: RoadShieldCallback,
+        startIndex: Int = 0,
+        endIndex: Int = maneuvers.lastIndex
+    ) {
         if (routeShieldJob == null ||
             (routeShieldJob != null && routeShieldJob!!.isCompleted && !routeShieldJob!!.isActive)
         ) {
             routeShieldJob = mainJobController.scope.launch {
-                val result = processor.processRoadShields(endIndex, startIndex, maneuvers)
-                when (result) {
+                when (val result = processor.processRoadShields(startIndex, endIndex, maneuvers)) {
                     is ManeuverResultV2.GetRoadShields.Success -> {
+                        callback.onRoadShields(ExpectedFactory.createValue(result.roadShields))
                     }
                     is ManeuverResultV2.GetRoadShields.Failure -> {
-
+                        callback.onRoadShields(
+                            ExpectedFactory.createError(ManeuverError(result.error))
+                        )
                     }
                 }
             }
