@@ -44,42 +44,8 @@ import com.mapbox.api.directions.v5.models.BannerText
 
 class RoadShieldComponentNode private constructor(
     val text: String,
-    val shieldUrl: String? = null,
-    val shieldIcon: ByteArray? = null,
-    val roadShield: RoadShield
+    val shieldUrl: String? = null
 ) : ComponentNode {
-
-    /**
-     * Regenerate whenever a change is made
-     */
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as RoadShieldComponentNode
-
-        if (text != other.text) return false
-        if (roadShield != other.roadShield) return false
-
-        return true
-    }
-
-    /**
-     * Regenerate whenever a change is made
-     */
-    override fun hashCode(): Int {
-        var result = text.hashCode()
-        result = 31 * result + (roadShield.hashCode() ?: 0)
-        return result
-    }
-
-    /**
-     * Returns a string representation of the object.
-     */
-    override fun toString(): String {
-        return "RoadShieldComponentNode(text='$text', roadShield=$roadShield)"
-    }
-
 
     /**
      * @return builder matching the one used to create this instance
@@ -87,7 +53,29 @@ class RoadShieldComponentNode private constructor(
     fun toBuilder(): Builder {
         return Builder()
             .text(text)
-            .roadShield(roadShield)
+            .shieldUrl(shieldUrl)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as RoadShieldComponentNode
+
+        if (text != other.text) return false
+        if (shieldUrl != other.shieldUrl) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = text.hashCode()
+        result = 31 * result + (shieldUrl?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun toString(): String {
+        return "RoadShieldComponentNode(text='$text', shieldUrl=$shieldUrl)"
     }
 
     /**
@@ -98,8 +86,6 @@ class RoadShieldComponentNode private constructor(
     class Builder {
         private var text: String = ""
         private var shieldUrl: String? = null
-        private var shieldIcon: ByteArray? = null
-        private var roadShield: RoadShield = RoadShield()
 
         /**
          * apply text to the Builder.
@@ -118,31 +104,13 @@ class RoadShieldComponentNode private constructor(
             apply { this.shieldUrl = shieldUrl }
 
         /**
-         * apply text to the Builder.
-         * @param text String
-         * @return Builder
-         */
-        fun shieldIcon(shieldIcon: ByteArray?): Builder =
-            apply { this.shieldIcon = shieldIcon }
-
-        /**
-         * apply roadShield to the Builder.
-         * @param roadShield RoadShield?
-         * @return Builder
-         */
-        fun roadShield(roadShield: RoadShield): Builder =
-            apply { this.roadShield = roadShield }
-
-        /**
          * Build the [RoadShieldComponentNode]
          * @return RoadShieldComponentNode
          */
         fun build(): RoadShieldComponentNode {
             return RoadShieldComponentNode(
                 text,
-                null,
-                null,
-                roadShield,
+                shieldUrl
             )
         }
     }

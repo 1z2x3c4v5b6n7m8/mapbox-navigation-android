@@ -9,6 +9,4 @@ interface ManeuverCallbackV2 {
     fun onError(error: Expected<ManeuverError, ManeuverV2>)
 
     fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>)
-
-    fun onManeuversWithShields(maneuvers: Expected<ManeuverError, List<ManeuverV2>>)
 }

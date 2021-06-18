@@ -18,6 +18,6 @@ sealed class ManeuverResultV2 {
 
     sealed class GetRoadShields : ManeuverResultV2() {
         data class Failure(val error: String?) : GetRoadShields()
-        data class Success(val roadShields: HashMap<String, RoadShield>) : GetRoadShields()
+        data class Success(val roadShields: Map<String, RoadShield?>) : GetRoadShields()
     }
 }

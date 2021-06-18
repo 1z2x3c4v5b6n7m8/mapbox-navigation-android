@@ -6,5 +6,5 @@ import com.mapbox.navigation.ui.maneuver.model.RoadShield
 
 fun interface RoadShieldCallback {
 
-    fun onRoadShields(maneuvers: Expected<ManeuverError, Map<String, RoadShield>>)
+    fun onRoadShields(maneuvers: Expected<ManeuverError, Map<String, RoadShield?>>)
 }

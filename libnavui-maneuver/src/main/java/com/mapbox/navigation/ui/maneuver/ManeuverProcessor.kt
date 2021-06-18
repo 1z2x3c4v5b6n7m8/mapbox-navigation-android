@@ -9,7 +9,6 @@ import com.mapbox.common.HttpRequest
 import com.mapbox.common.UAComponents
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.base.trip.model.RouteStepProgress
-import com.mapbox.navigation.ui.maneuver.RoadShieldDownloader.downloadImage
 import com.mapbox.navigation.ui.maneuver.model.Component
 import com.mapbox.navigation.ui.maneuver.model.DelimiterComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitComponentNode
@@ -182,12 +181,12 @@ internal class ManeuverProcessor {
                     val roadShield = RoadShieldComponentNode
                         .Builder()
                         .text(component.text())
-                        .shieldIcon(
+                        /*.shieldIcon(
                             component.imageBaseUrl()?.let {
                                 val roadShieldRequest = getHttpRequest(it)
                                 return@let downloadImage(roadShieldRequest).data
                             }
-                        )
+                        )*/
                         .build()
                     componentList.add(Component(BannerComponents.ICON, roadShield))
                 }

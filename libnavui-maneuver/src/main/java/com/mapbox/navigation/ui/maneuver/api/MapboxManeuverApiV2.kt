@@ -60,8 +60,10 @@ class MapboxManeuverApiV2 internal constructor(
             }
             else -> {
                 callback.onError(
-                    ExpectedFactory.createError(ManeuverError(
-                        "Inappropriate  $result emitted for $action.", null)
+                    ExpectedFactory.createError(
+                        ManeuverError(
+                            "Inappropriate  $result emitted for $action.", null
+                        )
                     )
                 )
             }
@@ -89,14 +91,17 @@ class MapboxManeuverApiV2 internal constructor(
                 callback.onError(ExpectedFactory.createError(ManeuverError(result.error)))
             }
             else -> {
-                callback.onError(ExpectedFactory.createError(ManeuverError(
-                    "Inappropriate  $result emitted for $action.", null
-                )))
+                callback.onError(
+                    ExpectedFactory.createError(
+                        ManeuverError(
+                            "Inappropriate  $result emitted for $action.", null
+                        )
+                    )
+                )
             }
         }
     }
 
-    // TODO: Add resubscribe logic
     // The view needs to maintain the Map<String, RoadShield> so that it doesn't blink.
     // The above change will have to be done on the view. The API already sends the map through
     // the callback.

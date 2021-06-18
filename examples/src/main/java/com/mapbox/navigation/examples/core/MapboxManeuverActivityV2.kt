@@ -1,13 +1,10 @@
 package com.mapbox.navigation.examples.core
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
-import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
-import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
@@ -38,10 +35,8 @@ import com.mapbox.navigation.core.replay.MapboxReplayer
 import com.mapbox.navigation.core.replay.ReplayLocationEngine
 import com.mapbox.navigation.core.replay.route.ReplayProgressObserver
 import com.mapbox.navigation.core.replay.route.ReplayRouteMapper
-import com.mapbox.navigation.core.trip.session.BannerInstructionsObserver
 import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
-import com.mapbox.navigation.examples.core.databinding.LayoutActivityManeuverBinding
 import com.mapbox.navigation.examples.core.databinding.LayoutActivityManeuverTwoBinding
 import com.mapbox.navigation.ui.maneuver.api.*
 import com.mapbox.navigation.ui.maneuver.model.*
@@ -126,13 +121,16 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
     private val replayProgressObserver = ReplayProgressObserver(mapboxReplayer)
 
     private val roadShieldCallback = RoadShieldCallback { result ->
-        result.fold( { error ->
-
-        }, { roadShield ->
-            roadShield.forEach { (key, value) ->
-
+        result.fold(
+            { error ->
+                //
+            },
+            { roadShield ->
+                roadShield.forEach { (key, value) ->
+                    Log.e("test", "id: $key, bitmap: $value")
+                }
             }
-        })
+        )
     }
 
     private val callbackV2 = object : ManeuverCallbackV2 {
@@ -141,13 +139,9 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         }
 
         override fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
-            ifNonNull (maneuvers.value ) { list ->
+            ifNonNull(maneuvers.value) { list ->
                 maneuverApi.getRoadShields(list, roadShieldCallback)
             }
-        }
-
-        override fun onManeuversWithShields(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
-            //
         }
     }
 
@@ -190,15 +184,12 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
 
     private val arrivalObserver = object : ArrivalObserver {
         override fun onNextRouteLegStart(routeLegProgress: RouteLegProgress) {
-
         }
 
         override fun onFinalDestinationArrival(routeProgress: RouteProgress) {
-
         }
 
         override fun onWaypointArrival(routeProgress: RouteProgress) {
-
         }
     }
 

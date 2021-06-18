@@ -10,18 +10,29 @@ import com.mapbox.common.HttpRequest
 import com.mapbox.common.UAComponents
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.internal.utils.isSameRoute
-import com.mapbox.navigation.ui.maneuver.RoadShieldDownloader.downloadImage
-import com.mapbox.navigation.ui.maneuver.model.*
+import com.mapbox.navigation.ui.maneuver.model.Component
+import com.mapbox.navigation.ui.maneuver.model.DelimiterComponentNode
+import com.mapbox.navigation.ui.maneuver.model.ExitComponentNode
+import com.mapbox.navigation.ui.maneuver.model.ExitNumberComponentNode
 import com.mapbox.navigation.ui.maneuver.model.LegToManeuvers
+import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
+import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
+import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
+import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
+import com.mapbox.navigation.ui.maneuver.model.StepDistanceRemaining
 import com.mapbox.navigation.ui.maneuver.model.StepIndexToManeuvers
+import com.mapbox.navigation.ui.maneuver.model.SubManeuver
+import com.mapbox.navigation.ui.maneuver.model.TextComponentNode
+import com.mapbox.navigation.ui.maneuver.model.TotalStepDistance
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
 import java.util.UUID
-import kotlin.RuntimeException
 
 internal class ManeuverProcessorV2 {
 
     private val maneuverState = ManeuverState()
     private val urlToShieldMap = hashMapOf<String, ByteArray?>()
+
+    private val roadShieldContentManager = RoadShieldContentManager()
 
     fun process(action: ManeuverActionV2): ManeuverResultV2 {
         return when (action) {
@@ -32,7 +43,7 @@ internal class ManeuverProcessorV2 {
                 processManeuverList(action.routeProgress)
             }
             else -> {
-                ManeuverResultV2.GetManeuverListWithProgress.Failure("")
+                throw IllegalArgumentException()
             }
         }
     }
@@ -41,48 +52,13 @@ internal class ManeuverProcessorV2 {
         startIndex: Int,
         endIndex: Int,
         maneuvers: List<ManeuverV2>
-    ) : ManeuverResultV2.GetRoadShields {
-        return try {
-            for (i in startIndex..endIndex) {
-                val maneuver = maneuvers[i]
-                downloadShield(maneuver.primary.id, maneuver.primary.componentList)
-                val secondaryManeuver = maneuver.secondary
-                ifNonNull(secondaryManeuver) { secondary ->
-                    downloadShield(secondary.id, secondary.componentList)
-                }
-                val subManeuver = maneuver.sub
-                ifNonNull(subManeuver) { sub ->
-                    downloadShield(sub.id, sub.componentList)
-                }
-            }
-            ManeuverResultV2.GetRoadShields.Success(maneuverState.roadShields)
-        } catch (exception: Exception) {
-            ManeuverResultV2.GetRoadShields.Failure(exception.message)
-        }
-    }
+    ): ManeuverResultV2.GetRoadShields {
+        val range = startIndex..endIndex
+        val shields = roadShieldContentManager.getShields(
+            maneuvers.filterIndexed { index, _ -> index in range }
+        )
 
-    private suspend fun downloadShield(id: String, components: List<Component>) {
-        if (maneuverState.roadShields[id]?.shieldIcon == null) {
-            components.forEach { component ->
-                if (component.node is RoadShieldComponentNode) {
-                    maneuverState.roadShields[id] = downloadShield(component.node)
-                }
-            }
-        }
-    }
-
-    private suspend fun downloadShield(node: RoadShieldComponentNode): RoadShield {
-        node.roadShield.shieldIcon = ifNonNull(node.roadShield.shieldUrl) { url ->
-            if (urlToShieldMap[url] != null) {
-                urlToShieldMap[url]
-            } else {
-                val roadShieldRequest = getHttpRequest(url)
-                val roadShield = downloadImage(roadShieldRequest).data
-                urlToShieldMap[url] = roadShield
-                roadShield
-            }
-        }
-        return node.roadShield
+        return ManeuverResultV2.GetRoadShields.Success(shields)
     }
 
     private fun getHttpRequest(imageBaseUrl: String): HttpRequest {
@@ -152,7 +128,8 @@ internal class ManeuverProcessorV2 {
                 ifNonNull(filteredList) {
                     ManeuverResultV2.GetManeuverListWithProgress.Success(it)
                 } ?: ManeuverResultV2.GetManeuverListWithProgress.Failure("")
-            } ?: ManeuverResultV2.GetManeuverListWithProgress.Failure("$currentBanner cannot be null")
+            }
+                ?: ManeuverResultV2.GetManeuverListWithProgress.Failure("$currentBanner cannot be null")
         } catch (exception: Exception) {
             ManeuverResultV2.GetManeuverListWithProgress.Failure(exception.message)
         }
@@ -204,7 +181,7 @@ internal class ManeuverProcessorV2 {
                     legToManeuver.stepIndexToManeuvers.forEach { stepIndexToManeuver ->
                         maneuverList.addAll(stepIndexToManeuver.maneuverList)
                     }
-                }?: throw RuntimeException("")
+                } ?: throw RuntimeException("")
             }
         }
         if (maneuverList.isEmpty()) {
@@ -422,7 +399,7 @@ internal class ManeuverProcessorV2 {
                     val roadShield = RoadShieldComponentNode
                         .Builder()
                         .text(component.text())
-                        .roadShield(RoadShield(component.imageBaseUrl(), null))
+                        .shieldUrl(component.imageBaseUrl())
                         .build()
                     componentList.add(Component(BannerComponents.ICON, roadShield))
                 }

@@ -1,8 +1,8 @@
 package com.mapbox.navigation.ui.maneuver.model
 
 data class RoadShield(
-    val shieldUrl: String? = null,
-    var shieldIcon: ByteArray? = null
+    val shieldUrl: String,
+    var shieldIcon: ByteArray
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -20,12 +20,12 @@ data class RoadShield(
     }
 
     override fun hashCode(): Int {
-        var result = shieldUrl?.hashCode() ?: 0
-        result = 31 * result + (shieldIcon?.contentHashCode() ?: 0)
+        var result = shieldUrl.hashCode()
+        result = 31 * result + shieldIcon.contentHashCode()
         return result
     }
 
     override fun toString(): String {
-        return "RoadShield(shieldUrl=$shieldUrl, shieldIcon=${shieldIcon?.contentToString()})"
+        return "RoadShield(shieldUrl=$shieldUrl, shieldIcon=${shieldIcon.contentToString()})"
     }
 }
