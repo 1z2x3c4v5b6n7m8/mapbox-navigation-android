@@ -44,8 +44,7 @@ class MapboxHybridRouter(
         urlSkuTokenProvider: UrlSkuTokenProvider,
         navigatorNative: MapboxNativeNavigator,
         logger: Logger,
-        networkStatusService: NetworkStatusService,
-        refreshEnabled: Boolean
+        networkStatusService: NetworkStatusService
     ) : this(
         onboardRouter = MapboxOnboardRouter(
             navigatorNative,
@@ -56,7 +55,6 @@ class MapboxHybridRouter(
             accessToken,
             context,
             urlSkuTokenProvider,
-            refreshEnabled,
             logger
         ),
         networkStatusService = networkStatusService,

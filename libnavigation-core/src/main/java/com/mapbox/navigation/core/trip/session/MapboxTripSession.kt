@@ -570,9 +570,10 @@ internal class MapboxTripSession(
             if (!isActive) {
                 return@launch
             }
-            val remainingWaypoints = ifNonNull(status.route?.routeOptions()?.coordinates()?.size) {
-                it - status.navigationStatus.nextWaypointIndex
-            } ?: 0
+            val remainingWaypoints =
+                ifNonNull(status.route?.routeOptions()?.coordinatesList()?.size) {
+                    it - status.navigationStatus.nextWaypointIndex
+                } ?: 0
             val routeProgress = getRouteProgressFrom(
                 status.route,
                 status.navigationStatus,
