@@ -18,9 +18,18 @@ class MapboxStepDistance @JvmOverloads constructor(
 ) : AppCompatTextView(context, attrs, defStyleAttr) {
 
     /**
-     * Render distance remaining to finish step or total step distance based on [StepDistance].
+     * Render distance remaining to finish step based on [StepDistance].
      */
-    fun render(stepDistance: StepDistance) {
-        text = stepDistance.distanceFormatter.formatDistance(stepDistance.distance)
+    fun renderDistanceRemaining(stepDistance: StepDistance) {
+        stepDistance.distanceRemaining?.let { distance ->
+            text = stepDistance.distanceFormatter.formatDistance(distance)
+        }
+    }
+
+    /**
+     * Render total step distance based on [StepDistance].
+     */
+    fun renderTotalStepDistance(stepDistance: StepDistance) {
+        text = stepDistance.distanceFormatter.formatDistance(stepDistance.totalDistance)
     }
 }

@@ -2,6 +2,7 @@ package com.mapbox.navigation.ui.maneuver.view
 
 import androidx.recyclerview.widget.DiffUtil
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
+import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
 
 /**
  * A utility used to calculate the difference between two lists of upcoming maneuvers.
@@ -10,8 +11,8 @@ import com.mapbox.navigation.ui.maneuver.model.Maneuver
  * @constructor
  */
 internal class MapboxManeuverDiffCallback(
-    private val oldList: List<Maneuver>,
-    private val newList: List<Maneuver>
+    private val oldList: List<ManeuverV2>,
+    private val newList: List<ManeuverV2>
 ) : DiffUtil.Callback() {
 
     /**

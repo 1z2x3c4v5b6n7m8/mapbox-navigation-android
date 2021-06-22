@@ -10,8 +10,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.mapbox.navigation.base.formatter.DistanceFormatterOptions
-import com.mapbox.navigation.core.internal.formatter.MapboxDistanceFormatter
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxItemUpcomingManeuversLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
@@ -37,7 +35,7 @@ class MapboxUpcomingManeuverAdapter(
     @StyleRes private var primaryManeuverAppearance: Int? = null
     @StyleRes private var secondaryManeuverAppearance: Int? = null
     private val inflater = LayoutInflater.from(context)
-    private val upcomingManeuverList = mutableListOf<Maneuver>()
+    private val upcomingManeuverList = mutableListOf<ManeuverV2>()
 
     /**
      * Binds the given View to the position.
@@ -103,7 +101,7 @@ class MapboxUpcomingManeuverAdapter(
      * Invoke to add all upcoming maneuvers to the recycler view.
      * @param upcomingManeuvers List<Maneuver>
      */
-    fun addUpcomingManeuvers(upcomingManeuvers: List<Maneuver>) {
+    fun addUpcomingManeuvers(upcomingManeuvers: List<ManeuverV2>) {
         val diffCallback = MapboxManeuverDiffCallback(upcomingManeuverList, upcomingManeuvers)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         upcomingManeuverList.clear()
@@ -124,13 +122,13 @@ class MapboxUpcomingManeuverAdapter(
          * Invoke the method to bind the maneuver to the view.
          * @param maneuver Maneuver
          */
-        fun bindUpcomingManeuver(maneuver: Maneuver) {
+        fun bindUpcomingManeuver(maneuver: ManeuverV2) {
             val primary = maneuver.primary
             val secondary = maneuver.secondary
-            val totalStepDistance = maneuver.totalManeuverDistance
+            val stepDistance = maneuver.stepDistance
             drawSecondaryManeuver(secondary)
             drawPrimaryManeuver(primary)
-            drawTotalStepDistance(totalStepDistance)
+            drawTotalStepDistance(stepDistance)
             updateStepDistanceTextAppearance()
             updateUpcomingPrimaryManeuverTextAppearance()
             updateUpcomingSecondaryManeuverTextAppearance()
@@ -159,13 +157,8 @@ class MapboxUpcomingManeuverAdapter(
             viewBinding.maneuverIcon.renderPrimaryTurnIcon(primary)
         }
 
-        private fun drawTotalStepDistance(totalStepDistance: TotalManeuverDistance) {
-            viewBinding.stepDistance.render(
-                StepDistance(
-                    MapboxDistanceFormatter(DistanceFormatterOptions.Builder(context).build()),
-                    totalStepDistance.totalDistance
-                )
-            )
+        private fun drawTotalStepDistance(stepDistance: StepDistance) {
+            viewBinding.stepDistance.renderTotalStepDistance(stepDistance)
         }
 
         private fun drawSecondaryManeuver(secondary: SecondaryManeuver?) {

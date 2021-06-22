@@ -2,11 +2,10 @@ package com.mapbox.navigation.ui.maneuver.model
 
 class ManeuverV2 internal constructor(
     val primary: PrimaryManeuver,
-    val totalDistance: TotalStepDistance,
-    var distanceRemaining: StepDistanceRemaining,
+    val stepDistance: StepDistance,
     val secondary: SecondaryManeuver?,
     val sub: SubManeuver?,
-    val laneGuidance: Lane?,
+    val laneGuidance: Lane?
 ) {
 
     override fun equals(other: Any?): Boolean {
@@ -19,7 +18,7 @@ class ManeuverV2 internal constructor(
         if (secondary != other.secondary) return false
         if (sub != other.sub) return false
         if (laneGuidance != other.laneGuidance) return false
-        if (totalDistance != other.totalDistance) return false
+        if (stepDistance != other.stepDistance) return false
 
         return true
     }

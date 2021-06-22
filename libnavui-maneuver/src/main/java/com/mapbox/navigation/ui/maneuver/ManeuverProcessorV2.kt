@@ -8,6 +8,7 @@ import com.mapbox.api.directions.v5.models.RouteLeg
 import com.mapbox.common.HttpMethod
 import com.mapbox.common.HttpRequest
 import com.mapbox.common.UAComponents
+import com.mapbox.navigation.base.formatter.DistanceFormatter
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.internal.utils.isSameRoute
 import com.mapbox.navigation.ui.maneuver.model.Component
@@ -19,11 +20,9 @@ import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
-import com.mapbox.navigation.ui.maneuver.model.StepDistanceRemaining
 import com.mapbox.navigation.ui.maneuver.model.StepIndexToManeuvers
 import com.mapbox.navigation.ui.maneuver.model.SubManeuver
 import com.mapbox.navigation.ui.maneuver.model.TextComponentNode
-import com.mapbox.navigation.ui.maneuver.model.TotalStepDistance
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
 import java.util.UUID
 
@@ -37,10 +36,10 @@ internal class ManeuverProcessorV2 {
     fun process(action: ManeuverActionV2): ManeuverResultV2 {
         return when (action) {
             is ManeuverActionV2.GetManeuverListWithRoute -> {
-                processManeuverList(action.route, action.routeLeg)
+                processManeuverList(action.route, action.distanceFormatter, action.routeLeg)
             }
             is ManeuverActionV2.GetManeuverList -> {
-                processManeuverList(action.routeProgress)
+                processManeuverList(action.routeProgress, action.distanceFormatter)
             }
             else -> {
                 throw IllegalArgumentException()
@@ -77,6 +76,7 @@ internal class ManeuverProcessorV2 {
 
     private fun processManeuverList(
         route: DirectionsRoute,
+        distanceFormatter: DistanceFormatter,
         routeLeg: RouteLeg? = null
     ): ManeuverResultV2.GetManeuverList {
         if (!route.isSameRoute(maneuverState.route)) {
@@ -85,7 +85,7 @@ internal class ManeuverProcessorV2 {
             maneuverState.roadShields.clear()
             urlToShieldMap.clear()
             try {
-                createManeuverList(route)
+                createManeuverList(route, distanceFormatter)
             } catch (exception: RuntimeException) {
                 return ManeuverResultV2.GetManeuverList.Failure(exception.message)
             }
@@ -99,7 +99,8 @@ internal class ManeuverProcessorV2 {
     }
 
     private fun processManeuverList(
-        routeProgress: RouteProgress
+        routeProgress: RouteProgress,
+        distanceFormatter: DistanceFormatter
     ): ManeuverResultV2.GetManeuverListWithProgress {
         return try {
             val route = routeProgress.route
@@ -108,21 +109,25 @@ internal class ManeuverProcessorV2 {
             val stepDistanceRemaining = getStepDistanceRemaining(routeProgress)
             val stepIndex = routeProgress.currentLegProgress?.currentStepProgress?.stepIndex
             ifNonNull(currentBanner) { banner ->
-                val currentManeuver = transformToManeuver(banner, routeProgress)
+                val currentManeuver = transformToManeuver(banner, distanceFormatter, routeProgress)
                 if (!route.isSameRoute(maneuverState.route)) {
                     maneuverState.route = route
                     maneuverState.allManeuvers.clear()
                     maneuverState.roadShields.clear()
                     urlToShieldMap.clear()
-                    createManeuverList(route)
+                    createManeuverList(route, distanceFormatter)
                 }
-                val filteredList = ifNonNull(stepIndex, routeLeg) { index, leg ->
+                val filteredList = ifNonNull(
+                    stepIndex,
+                    routeLeg,
+                    stepDistanceRemaining
+                ) { index, leg, distanceRemaining ->
                     createFilteredList(
                         index,
                         leg,
                         currentManeuver,
                         maneuverState.allManeuvers,
-                        stepDistanceRemaining
+                        distanceRemaining
                     )
                 }
                 ifNonNull(filteredList) {
@@ -135,7 +140,7 @@ internal class ManeuverProcessorV2 {
         }
     }
 
-    private fun createManeuverList(route: DirectionsRoute) {
+    private fun createManeuverList(route: DirectionsRoute, distanceFormatter: DistanceFormatter) {
         ifNonNull(route.legs()) { routeLegs ->
             routeLegs.forEach { routeLeg ->
                 ifNonNull(routeLeg?.steps()) { steps ->
@@ -144,7 +149,7 @@ internal class ManeuverProcessorV2 {
                         steps[stepIndex].bannerInstructions()?.let { bannerInstruction ->
                             val maneuverList = mutableListOf<ManeuverV2>()
                             bannerInstruction.forEach { banner ->
-                                maneuverList.add(transformToManeuver(banner))
+                                maneuverList.add(transformToManeuver(banner, distanceFormatter))
                             }
                             val stepIndexToManeuvers = StepIndexToManeuvers(
                                 stepIndex,
@@ -195,7 +200,7 @@ internal class ManeuverProcessorV2 {
         routeLeg: RouteLeg,
         currentManeuver: ManeuverV2,
         inputList: List<LegToManeuvers>,
-        stepDistanceRemaining: StepDistanceRemaining
+        stepDistanceRemaining: Double
     ): List<ManeuverV2> {
         val legToManeuver = routeLeg.findIn(inputList)
         val stepToManeuverList = legToManeuver.stepIndexToManeuvers
@@ -220,18 +225,18 @@ internal class ManeuverProcessorV2 {
     private fun updateDistanceRemaining(
         legStep: StepIndexToManeuvers,
         currentManeuver: ManeuverV2,
-        stepDistanceRemaining: StepDistanceRemaining
+        stepDistanceRemaining: Double
     ): Int {
         var maneuverIndex = Int.MIN_VALUE
         if (legStep.maneuverList.size == 1) {
             if (currentManeuver == legStep.maneuverList[0]) {
-                legStep.maneuverList[0].distanceRemaining = stepDistanceRemaining
+                legStep.maneuverList[0].stepDistance.distanceRemaining = stepDistanceRemaining
             }
         } else {
             for (i in 0..legStep.maneuverList.lastIndex) {
                 if (currentManeuver == legStep.maneuverList[i]) {
                     maneuverIndex = i
-                    legStep.maneuverList[i].distanceRemaining = stepDistanceRemaining
+                    legStep.maneuverList[i].stepDistance.distanceRemaining = stepDistanceRemaining
                     break
                 }
             }
@@ -264,31 +269,28 @@ internal class ManeuverProcessorV2 {
 
     private fun transformToManeuver(
         bannerInstructions: BannerInstructions,
+        distanceFormatter: DistanceFormatter,
         routeProgress: RouteProgress? = null
     ): ManeuverV2 {
         val primaryManeuver = getPrimaryManeuver(bannerInstructions.primary())
         val secondaryManeuver = getSecondaryManeuver(bannerInstructions.secondary())
         val subManeuver = getSubManeuverText(bannerInstructions.sub())
-        val totalStepDistance = TotalStepDistance(bannerInstructions.distanceAlongGeometry())
-        val stepDistanceRemaining = ifNonNull(routeProgress) {
-            getStepDistanceRemaining(it)
-        } ?: StepDistanceRemaining(bannerInstructions.distanceAlongGeometry())
+        val totalStepDistance = bannerInstructions.distanceAlongGeometry()
+        val stepDistanceRemaining = getStepDistanceRemaining(routeProgress)
+        val stepDistance = StepDistance(distanceFormatter, totalStepDistance, stepDistanceRemaining)
         return ManeuverV2(
             primaryManeuver,
-            totalStepDistance,
-            stepDistanceRemaining,
+            stepDistance,
             secondaryManeuver,
             subManeuver,
             null
         )
     }
 
-    private fun getStepDistanceRemaining(
-        routeProgress: RouteProgress?
-    ): StepDistanceRemaining {
+    private fun getStepDistanceRemaining(routeProgress: RouteProgress?): Double? {
         return ifNonNull(routeProgress?.currentLegProgress?.currentStepProgress) {
-            StepDistanceRemaining(it.distanceRemaining.toDouble())
-        } ?: StepDistanceRemaining(null)
+            it.distanceRemaining.toDouble()
+        }
     }
 
     private fun getPrimaryManeuver(bannerText: BannerText): PrimaryManeuver {

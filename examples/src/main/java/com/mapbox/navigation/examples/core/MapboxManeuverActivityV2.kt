@@ -139,8 +139,9 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         }
 
         override fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
-            ifNonNull(maneuvers.value) { list ->
-                maneuverApi.getRoadShields(list, roadShieldCallback)
+            binding.maneuverView.renderManeuver(maneuvers)
+            maneuvers.onValue {
+                binding.maneuverView.renderUpcomingManeuvers(it.subList(1, it.size))
             }
         }
     }

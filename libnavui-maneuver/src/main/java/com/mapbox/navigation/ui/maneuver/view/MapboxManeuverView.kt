@@ -13,18 +13,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView.HORIZONTAL
 import androidx.recyclerview.widget.RecyclerView.VERTICAL
 import com.mapbox.bindgen.Expected
+import com.mapbox.navigation.base.formatter.DistanceFormatter
+import com.mapbox.navigation.base.formatter.DistanceFormatterOptions
+import com.mapbox.navigation.core.internal.formatter.MapboxDistanceFormatter
 import com.mapbox.navigation.ui.maneuver.R
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxSubManeuverLayoutBinding
-import com.mapbox.navigation.ui.maneuver.model.Lane
-import com.mapbox.navigation.ui.maneuver.model.Maneuver
-import com.mapbox.navigation.ui.maneuver.model.ManeuverError
-import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
-import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
-import com.mapbox.navigation.ui.maneuver.model.StepDistance
-import com.mapbox.navigation.ui.maneuver.model.SubManeuver
-import com.mapbox.navigation.ui.maneuver.model.TurnIconResources
+import com.mapbox.navigation.ui.maneuver.model.*
 
 /**
  * Default view to render a maneuver.
@@ -36,7 +32,7 @@ class MapboxManeuverView : ConstraintLayout {
 
     /**
      *
-     * @param context Context
+     * @param context Context`
      * @constructor
      */
     constructor(context: Context) : super(context)
@@ -66,7 +62,7 @@ class MapboxManeuverView : ConstraintLayout {
         initAttributes(attrs)
     }
 
-    private val laneGuidanceAdapter = MapboxLaneGuidanceAdapter(context)
+    //private val laneGuidanceAdapter = MapboxLaneGuidanceAdapter(context)
     private val upcomingManeuverAdapter = MapboxUpcomingManeuverAdapter(context)
     private val binding = MapboxManeuverLayoutBinding.inflate(
         LayoutInflater.from(context),
@@ -80,10 +76,10 @@ class MapboxManeuverView : ConstraintLayout {
      * Initialize.
      */
     init {
-        binding.laneGuidanceRecycler.apply {
+        /*binding.laneGuidanceRecycler.apply {
             layoutManager = LinearLayoutManager(context, HORIZONTAL, false)
             adapter = laneGuidanceAdapter
-        }
+        }*/
 
         binding.upcomingManeuverRecycler.apply {
             layoutManager = LinearLayoutManager(context, VERTICAL, false)
@@ -105,10 +101,12 @@ class MapboxManeuverView : ConstraintLayout {
      * Invoke the method to render primary, secondary, sub instructions and lane information.
      * @param maneuver Expected
      */
-    fun renderManeuver(maneuver: Expected<ManeuverError, Maneuver>) {
-        maneuver.onValue {
-            drawManeuver(it)
-        }
+    fun renderManeuver(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
+        maneuvers.fold({ error ->
+            //
+        }, { list ->
+            drawManeuver(list[0])
+        })
     }
 
     /**
@@ -279,22 +277,22 @@ class MapboxManeuverView : ConstraintLayout {
      * Invoke the method to add lane information on top of [MapboxManeuverView]
      * @param lane Lane
      */
-    fun renderAddLanes(lane: Lane) {
+    /*fun renderAddLanes(lane: Lane) {
         laneGuidanceAdapter.addLanes(lane.allLanes, lane.activeDirection)
-    }
+    }*/
 
     /**
      * Invoke the method to remove lane information on top of [MapboxManeuverView]
      */
-    fun renderRemoveLanes() {
+    /*fun renderRemoveLanes() {
         laneGuidanceAdapter.removeLanes()
-    }
+    }*/
 
     /**
      * Invoke the method to render list of upcoming instructions on top of [MapboxManeuverView]
      * @param maneuvers List<Maneuver>
      */
-    fun renderUpcomingManeuvers(maneuvers: List<Maneuver>) {
+    fun renderUpcomingManeuvers(maneuvers: List<ManeuverV2>) {
         upcomingManeuverAdapter.addUpcomingManeuvers(maneuvers)
     }
 
@@ -303,7 +301,7 @@ class MapboxManeuverView : ConstraintLayout {
      * @param stepDistance StepDistance
      */
     fun renderDistanceRemaining(stepDistance: StepDistance) {
-        mainLayoutBinding.stepDistance.render(stepDistance)
+        mainLayoutBinding.stepDistance.renderDistanceRemaining(stepDistance)
     }
 
     private fun initAttributes(attrs: AttributeSet?) {
@@ -345,12 +343,12 @@ class MapboxManeuverView : ConstraintLayout {
                 )
             )
         )
-        laneGuidanceAdapter.updateStyle(
+        /*laneGuidanceAdapter.updateStyle(
             typedArray.getResourceId(
                 R.styleable.MapboxManeuverView_laneGuidanceManeuverIconStyle,
                 R.style.MapboxStyleTurnIconManeuver
             )
-        )
+        )*/
         mainLayoutBinding.maneuverIcon.updateTurnIconStyle(
             ContextThemeWrapper(
                 context,
@@ -371,11 +369,12 @@ class MapboxManeuverView : ConstraintLayout {
         )
     }
 
-    private fun drawManeuver(maneuver: Maneuver) {
+    private fun drawManeuver(maneuver: ManeuverV2) {
         val primary = maneuver.primary
         val secondary = maneuver.secondary
         val sub = maneuver.sub
         val lane = maneuver.laneGuidance
+        val stepDistance = maneuver.stepDistance
         if (secondary?.componentList != null) {
             updateSecondaryManeuverVisibility(VISIBLE)
             renderSecondaryManeuver(secondary)
@@ -383,6 +382,7 @@ class MapboxManeuverView : ConstraintLayout {
             updateSecondaryManeuverVisibility(GONE)
         }
         renderPrimaryManeuver(primary)
+        renderDistanceRemaining(stepDistance)
         if (sub?.componentList != null || lane != null) {
             updateSubManeuverViewVisibility(VISIBLE)
         } else {
@@ -393,14 +393,14 @@ class MapboxManeuverView : ConstraintLayout {
         } else {
             renderSubManeuver(null)
         }
-        when (lane != null) {
+        /*when (lane != null) {
             true -> {
                 renderAddLanes(lane)
             }
             else -> {
                 renderRemoveLanes()
             }
-        }
+        }*/
     }
 
     private fun hideSecondaryManeuver(visibility: Int) {

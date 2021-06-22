@@ -14,7 +14,6 @@ import com.mapbox.navigation.examples.core.IndependentRouteGenerationActivity
 import com.mapbox.navigation.examples.core.MapboxBuildingHighlightActivity
 import com.mapbox.navigation.examples.core.MapboxCustomStyleActivity
 import com.mapbox.navigation.examples.core.MapboxJunctionActivity
-import com.mapbox.navigation.examples.core.MapboxManeuverActivity
 import com.mapbox.navigation.examples.core.MapboxManeuverActivityV2
 import com.mapbox.navigation.examples.core.MapboxMultipleArrowActivity
 import com.mapbox.navigation.examples.core.MapboxNavigationActivity
@@ -99,11 +98,6 @@ class MainActivity : AppCompatActivity(), PermissionsListener {
                 getString(R.string.title_trip_progress),
                 getString(R.string.description_trip_progress),
                 MapboxTripProgressActivity::class.java
-            ),
-            SampleItem(
-                getString(R.string.title_maneuver),
-                getString(R.string.description_maneuver),
-                MapboxManeuverActivity::class.java
             ),
             SampleItem(
                 "V2 Maneuver Example",
