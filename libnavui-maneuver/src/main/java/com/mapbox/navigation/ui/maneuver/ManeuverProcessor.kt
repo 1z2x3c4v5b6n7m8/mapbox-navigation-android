@@ -27,7 +27,6 @@ import java.util.UUID
 internal class ManeuverProcessor {
 
     private val maneuverState = ManeuverState()
-    private val urlToShieldMap = hashMapOf<String, ByteArray?>()
 
     private val roadShieldContentManager = RoadShieldContentManager()
 
@@ -67,7 +66,6 @@ internal class ManeuverProcessor {
             maneuverState.route = route
             maneuverState.allManeuvers.clear()
             maneuverState.roadShields.clear()
-            urlToShieldMap.clear()
             try {
                 createManeuverList(route, distanceFormatter)
             } catch (exception: RuntimeException) {
@@ -98,7 +96,6 @@ internal class ManeuverProcessor {
                     maneuverState.route = route
                     maneuverState.allManeuvers.clear()
                     maneuverState.roadShields.clear()
-                    urlToShieldMap.clear()
                     createManeuverList(route, distanceFormatter)
                 }
                 val filteredList = ifNonNull(

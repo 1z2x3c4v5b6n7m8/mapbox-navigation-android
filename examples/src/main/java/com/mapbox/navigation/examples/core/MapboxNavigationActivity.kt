@@ -33,7 +33,6 @@ import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.directions.session.RoutesObserver
 import com.mapbox.navigation.core.directions.session.RoutesRequestCallback
 import com.mapbox.navigation.core.internal.formatter.MapboxDistanceFormatter
-import com.mapbox.navigation.core.trip.session.BannerInstructionsObserver
 import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
 import com.mapbox.navigation.core.trip.session.VoiceInstructionsObserver
@@ -230,7 +229,7 @@ class MapboxNavigationActivity : AppCompatActivity() {
             }
 
             // update top maneuver instructions
-            maneuverApi.getManeuverList(routeProgress, maneuverCallback)
+            maneuverApi.getManeuvers(routeProgress, maneuverCallback)
 
             // update bottom trip progress summary
             binding.tripProgressView.render(tripProgressApi.getTripProgress(routeProgress))

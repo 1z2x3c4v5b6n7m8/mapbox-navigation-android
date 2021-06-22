@@ -163,7 +163,7 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
     }
 
     private val routeProgressObserver = RouteProgressObserver { routeProgress ->
-        maneuverApi.getManeuverList(routeProgress, callbackV2)
+        maneuverApi.getManeuvers(routeProgress, callbackV2)
         routeArrowApi.addUpcomingManeuverArrow(routeProgress).apply {
             routeArrowView.renderManeuverUpdate(mapboxMap.getStyle()!!, this)
         }

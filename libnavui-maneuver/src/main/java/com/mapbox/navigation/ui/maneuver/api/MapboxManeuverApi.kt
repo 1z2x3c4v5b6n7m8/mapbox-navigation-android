@@ -34,17 +34,17 @@ class MapboxManeuverApi internal constructor(
     constructor(formatter: DistanceFormatter) : this(formatter, ManeuverProcessor())
 
     /**
-     * Given a [DirectionsRoute] the function iterates through all the [RouteLeg]. For every [RouteLeg]
-     * the API iterates through all the [LegStep]. For every [LegStep] the API parses the [BannerInstructions],
-     * transforms it into [Maneuver] object and adds it to a list. Once this list is ready the API maps this
-     * list to the [RouteLeg].
+     * Given a [DirectionsRoute] the function iterates through all the [RouteLeg] in a [DirectionsRoute].
+     * For every [RouteLeg] the API iterates through all the [LegStep]. For every [LegStep] the API
+     * parses the [BannerInstructions], transforms it into [Maneuver] object and adds it to a list.
+     * Once this list is ready the API maps this list to the [RouteLeg].
      *
      * @param route DirectionsRoute The route associated
      * @param routeLeg RouteLeg Specify to inform the API of the [RouteLeg] you wish to get the list of [Maneuver].
      * If null, the API returns the list of maneuvers for the first [RouteLeg] in a [DirectionsRoute]
-     * @param callback ManeuverCallbackV2 invoked with appropriate result
+     * @param callback ManeuverCallback invoked with appropriate result
      */
-    fun getManeuverList(
+    fun getManeuvers(
             route: DirectionsRoute,
             routeLeg: RouteLeg? = null,
             callback: ManeuverCallback,
@@ -71,12 +71,14 @@ class MapboxManeuverApi internal constructor(
     }
 
     /**
-     * Given [RouteProgress] the function extracts the current banner instruction. Using the
-     * list created and stored with [setManeuversWith], the API finds the position where the
-     * current banner instruction is contained in the list. Starting at that position, the
-     * function returns a sub list of maneuver instructions.
+     * Given [RouteProgress] the function prepares a list of [Maneuver] and returns the list with the
+     * first maneuver holding step distance remaining data and other subsequent maneuvers holding the
+     * total step distance.
+     *
+     * @param routeProgress RouteProgress
+     * @param callback ManeuverCallback invoked with appropriate result
      */
-    fun getManeuverList(
+    fun getManeuvers(
         routeProgress: RouteProgress,
         callback: ManeuverCallback
     ) {
@@ -102,12 +104,20 @@ class MapboxManeuverApi internal constructor(
         }
     }
 
-    // The view needs to maintain the Map<String, RoadShield> so that it doesn't blink.
-    // The above change will have to be done on the view. The API already sends the map through
-    // the callback.
+    // TODO: The view needs to maintain the Map<String, RoadShield> so that it doesn't blink.
     // TODO: Move the state from Processor to API
     // TODO: Write unit tests
     // TODO: Test off-route, multiLeg and other geographies
+    /**
+     * Given a list of [Maneuver] the function iterates through the list starting at startIndex and
+     * ending at endIndex to request shields for urls associated in [RoadShieldComponentNode]. If
+     * not specified, startIndex is 0 and endIndex is the last index in the list.
+     *
+     * @param maneuvers list of maneuvers
+     * @param callback RoadShieldCallback invoked with appropriate result
+     * @param startIndex starting position of item in the list
+     * @param endIndex end position of item in the list
+     */
     fun getRoadShields(
         maneuvers: List<Maneuver>,
         callback: RoadShieldCallback,
@@ -130,5 +140,12 @@ class MapboxManeuverApi internal constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Invoke the function to cancel any job invoked through other APIs
+     */
+    fun cancel() {
+        routeShieldJob?.cancel()
     }
 }

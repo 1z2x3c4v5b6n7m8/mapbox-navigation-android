@@ -34,7 +34,6 @@ import com.mapbox.navigation.core.replay.MapboxReplayer
 import com.mapbox.navigation.core.replay.ReplayLocationEngine
 import com.mapbox.navigation.core.replay.route.ReplayProgressObserver
 import com.mapbox.navigation.core.replay.route.ReplayRouteMapper
-import com.mapbox.navigation.core.trip.session.BannerInstructionsObserver
 import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.MapMatcherResultObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
@@ -191,7 +190,7 @@ class MapboxCustomStyleActivity : AppCompatActivity(), OnMapLongClickListener {
         tripProgressApiApi.getTripProgress(routeProgress).let { update ->
             binding.tripProgressView.render(update)
         }
-        maneuverApi.getManeuverList(routeProgress, maneuverCallback)
+        maneuverApi.getManeuvers(routeProgress, maneuverCallback)
     }
 
     private val mapMatcherObserver = MapMatcherResultObserver { mapMatcherResult ->
