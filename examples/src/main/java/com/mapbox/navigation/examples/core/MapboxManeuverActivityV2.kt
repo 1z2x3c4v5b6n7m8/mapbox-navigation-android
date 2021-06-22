@@ -141,7 +141,9 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         override fun onManeuvers(maneuvers: Expected<ManeuverError, List<Maneuver>>) {
             binding.maneuverView.renderManeuver(maneuvers)
             maneuvers.onValue {
-                binding.maneuverView.renderUpcomingManeuvers(it.subList(1, it.size))
+                if (it.isNotEmpty()) {
+                    binding.maneuverView.renderUpcomingManeuvers(it.subList(1, it.size))
+                }
             }
         }
     }
@@ -238,12 +240,12 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         mapboxReplayer.play()
     }
 
-    private fun findRoute(origin: Point, destination: Point) {
+    private fun findRoute(origin: Point, waypoint: List<Point>?, destination: Point) {
         val routeOptions = RouteOptions.builder()
             .applyDefaultNavigationOptions()
             .applyLanguageAndVoiceUnitOptions(this)
             .accessToken(getMapboxAccessTokenFromResources())
-            .coordinates(origin, null, destination)
+            .coordinates(origin, waypoint, destination)
             .build()
         mapboxNavigation.requestRoutes(
             routeOptions,
@@ -333,10 +335,14 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.latitude
             )
             //findRoute(originPoint, point)
-            // Route with multiple maneuver at both first and last
             val o = Point.fromLngLat(-121.981985, 37.529766)
-            val d = Point.fromLngLat(-121.986208, 37.522779)
-            findRoute(o, d)
+            val o1 = Point.fromLngLat(-121.978472, 37.529749)
+            val d = Point.fromLngLat(-121.971343, 37.535366)
+            findRoute(o, listOf(o1), d)
+            // Route with multiple maneuver at both first and last
+            //val o = Point.fromLngLat(-121.981985, 37.529766)
+            //val d = Point.fromLngLat(-121.986208, 37.522779)
+            //findRoute(o, d)
             // Route with multiple maneuver at only last
             //val o = Point.fromLngLat(-121.98198458807478, 37.529766392226776)
             //val d = Point.fromLngLat(-121.97966757718049, 37.52396897764474)

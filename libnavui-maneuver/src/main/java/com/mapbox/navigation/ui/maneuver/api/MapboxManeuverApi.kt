@@ -107,7 +107,6 @@ class MapboxManeuverApi internal constructor(
     // the callback.
     // TODO: Move the state from Processor to API
     // TODO: Write unit tests
-    // TODO: Remove legacy maneuver classes
     // TODO: Test off-route, multiLeg and other geographies
     fun getRoadShields(
         maneuvers: List<Maneuver>,

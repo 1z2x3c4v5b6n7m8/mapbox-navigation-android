@@ -101,7 +101,9 @@ class MapboxManeuverView : ConstraintLayout {
         maneuvers.fold({ error ->
             //
         }, { list ->
-            drawManeuver(list[0])
+            if (list.isNotEmpty()) {
+                drawManeuver(list[0])
+            }
         })
     }
 
