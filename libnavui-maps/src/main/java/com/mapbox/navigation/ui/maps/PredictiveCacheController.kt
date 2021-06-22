@@ -57,28 +57,7 @@ class PredictiveCacheController @JvmOverloads constructor(
     private val navigation: MapboxNavigation,
     private val predictiveCacheControllerErrorHandler: PredictiveCacheControllerErrorHandler? = null
 ) {
-    private var map: MapboxMap? = null
-
-    private val onStyleLoadedListener = object : OnStyleLoadedListener {
-        override fun onStyleLoaded() {
-            map?.let { map ->
-                val tileStore = map.getResourceOptions().tileStore
-                if (tileStore == null) {
-                    handleError("TileStore instance not configured for the Map.")
-                    return
-                }
-                val currentMapSources = mutableListOf<String>()
-                traverseMapSources(map) { tileVariant ->
-                    currentMapSources.add(tileVariant)
-                }
-                updateMapsControllers(
-                    currentMapSources,
-                    PredictiveCache.currentMapsPredictiveCacheControllers(),
-                    tileStore
-                )
-            }
-        }
-    }
+    private var mapListeners = mutableMapOf<MapboxMap, OnStyleLoadedListener>()
 
     init {
         PredictiveCache.createNavigationController(
@@ -87,32 +66,46 @@ class PredictiveCacheController @JvmOverloads constructor(
     }
 
     /**
-     * Call when a new map instance is available. Only one map instance at a time is supported.
+     * Call when a new map instance is available.
      */
-    fun setMapInstance(map: MapboxMap) {
-        removeMapInstance()
+    @JvmOverloads
+    fun addMapInstance(map: MapboxMap, tileVariantsToCache: List<String> = emptyList()) {
         val tileStore = map.getResourceOptions().tileStore
         if (tileStore == null) {
             handleError("TileStore instance not configured for the Map.")
             return
         }
-        traverseMapSources(map) { tileVariant ->
-            PredictiveCache.createMapsController(tileStore, tileVariant)
+        traverseMapSources(map, tileVariantsToCache) { tileVariant ->
+            PredictiveCache.createMapsController(map, tileStore, tileVariant)
         }
+
+        val onStyleLoadedListener = OnStyleLoadedListener {
+            val currentMapSources = mutableListOf<String>()
+            traverseMapSources(map, tileVariantsToCache) { tileVariant ->
+                currentMapSources.add(tileVariant)
+            }
+            updateMapsControllers(
+                map,
+                currentMapSources,
+                PredictiveCache.currentMapsPredictiveCacheControllers(map),
+                tileStore
+            )
+        }
+
         map.addOnStyleLoadedListener(onStyleLoadedListener)
-        this.map = map
+        mapListeners[map] = onStyleLoadedListener
     }
 
     /**
      * Remove the map instance. Call this whenever the [MapView] is destroyed
      * to avoid leaking references or downloading unnecessary resources.
      */
-    fun removeMapInstance() {
-        map?.removeOnStyleLoadedListener(onStyleLoadedListener)
-        PredictiveCache.currentMapsPredictiveCacheControllers().forEach { tileVariant ->
-            PredictiveCache.removeMapsController(tileVariant)
+    fun removeMapInstance(map: MapboxMap) {
+        mapListeners[map]?.let {
+            map.removeOnStyleLoadedListener(it)
+            mapListeners.remove(map)
         }
-        this.map = null
+        PredictiveCache.removeAllMapControllers(map)
     }
 
     /**
@@ -121,11 +114,18 @@ class PredictiveCacheController @JvmOverloads constructor(
      * and predictive caching is not needed anymore.
      */
     fun onDestroy() {
-        removeMapInstance()
+        mapListeners.forEach {
+            it.key.removeOnStyleLoadedListener(it.value)
+        }
+        mapListeners.clear()
         PredictiveCache.clean()
     }
 
-    private fun traverseMapSources(map: MapboxMap, fn: (String) -> Unit) {
+    private fun traverseMapSources(
+        map: MapboxMap,
+        tileVariantsToCache: List<String>,
+        fn: (String) -> Unit
+    ) {
         val filteredSources = map.getStyle()?.styleSources
             ?.filter { it.type == VECTOR_SOURCE_TYPE || it.type == RASTER_SOURCE_TYPE }
             ?: emptyList()
@@ -149,7 +149,12 @@ class PredictiveCacheController @JvmOverloads constructor(
                         handleError(message)
                         continue
                     } else {
-                        fn(url.removePrefix(MAPBOX_URL_PREFIX))
+                        val tileVariant = url.removePrefix(MAPBOX_URL_PREFIX)
+                        if (tileVariantsToCache.isEmpty() ||
+                            tileVariantsToCache.contains(tileVariant)
+                        ) {
+                            fn(tileVariant)
+                        }
                     }
                 }
             }
@@ -157,17 +162,18 @@ class PredictiveCacheController @JvmOverloads constructor(
     }
 
     private fun updateMapsControllers(
+        map: MapboxMap,
         currentMapSources: List<String>,
         attachedMapSources: List<String>,
         tileStore: TileStore
     ) {
         attachedMapSources
             .filterNot { currentMapSources.contains(it) }
-            .forEach { PredictiveCache.removeMapsController(it) }
+            .forEach { PredictiveCache.removeMapControllers(map, it) }
 
         currentMapSources
             .filterNot { attachedMapSources.contains(it) }
-            .forEach { PredictiveCache.createMapsController(tileStore, it) }
+            .forEach { PredictiveCache.createMapsController(map, tileStore, it) }
     }
 
     private fun handleError(error: String?) {
