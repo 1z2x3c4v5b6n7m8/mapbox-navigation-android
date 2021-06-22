@@ -1,7 +1,6 @@
 package com.mapbox.navigation.ui.maneuver.view
 
 import androidx.recyclerview.widget.DiffUtil
-import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
 
 /**

@@ -22,13 +22,11 @@ import com.mapbox.navigation.ui.maneuver.model.ExitComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitNumberComponentNode
 import com.mapbox.navigation.ui.maneuver.model.Lane
 import com.mapbox.navigation.ui.maneuver.model.LaneIndicator
-import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.SubManeuver
 import com.mapbox.navigation.ui.maneuver.model.TextComponentNode
-import com.mapbox.navigation.ui.maneuver.model.TotalManeuverDistance
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -12,11 +12,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxItemUpcomingManeuversLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
-import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.StepDistance
-import com.mapbox.navigation.ui.maneuver.model.TotalManeuverDistance
 import com.mapbox.navigation.ui.maneuver.view.MapboxUpcomingManeuverAdapter.MapboxUpcomingManeuverViewHolder
 import com.mapbox.navigation.utils.internal.ifNonNull
 

@@ -10,11 +10,9 @@ import com.mapbox.api.directions.v5.models.StepManeuver
 import com.mapbox.navigation.base.formatter.DistanceFormatterOptions
 import com.mapbox.navigation.core.internal.formatter.MapboxDistanceFormatter
 import com.mapbox.navigation.ui.maneuver.model.Component
-import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.TextComponentNode
-import com.mapbox.navigation.ui.maneuver.model.TotalManeuverDistance
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals

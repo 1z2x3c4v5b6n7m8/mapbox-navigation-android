@@ -10,15 +10,9 @@ import com.mapbox.navigation.base.trip.model.RouteLegProgress
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.base.trip.model.RouteStepProgress
 import com.mapbox.navigation.testing.MainCoroutineRule
-import com.mapbox.navigation.ui.maneuver.ManeuverAction
-import com.mapbox.navigation.ui.maneuver.ManeuverProcessor
-import com.mapbox.navigation.ui.maneuver.ManeuverResult
-import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.StepDistance
-import com.mapbox.navigation.ui.maneuver.model.StepDistanceError
-import com.mapbox.navigation.ui.maneuver.model.TotalManeuverDistance
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
