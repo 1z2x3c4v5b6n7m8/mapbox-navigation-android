@@ -15,6 +15,7 @@ import com.mapbox.navigation.ui.maneuver.model.ExitNumberComponentNode
 import com.mapbox.navigation.ui.maneuver.model.LegToManeuvers
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
+import com.mapbox.navigation.ui.maneuver.model.RoadShield
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.StepDistance
@@ -24,22 +25,24 @@ import com.mapbox.navigation.ui.maneuver.model.TextComponentNode
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
 import java.util.UUID
 
-internal class ManeuverProcessor {
-
-    private val maneuverState = ManeuverState()
-
-    private val roadShieldContentManager = RoadShieldContentManager()
+internal object ManeuverProcessor {
 
     fun process(action: ManeuverAction): ManeuverResult {
         return when (action) {
             is ManeuverAction.GetManeuverListWithRoute -> {
-                processManeuverList(action.route, action.distanceFormatter, action.routeLeg)
+                processManeuverList(
+                    action.route,
+                    action.routeLeg,
+                    action.maneuverState,
+                    action.distanceFormatter
+                )
             }
             is ManeuverAction.GetManeuverList -> {
-                processManeuverList(action.routeProgress, action.distanceFormatter)
-            }
-            else -> {
-                throw IllegalArgumentException()
+                processManeuverList(
+                    action.routeProgress,
+                    action.maneuverState,
+                    action.distanceFormatter
+                )
             }
         }
     }
@@ -47,27 +50,28 @@ internal class ManeuverProcessor {
     suspend fun processRoadShields(
         startIndex: Int,
         endIndex: Int,
-        maneuvers: List<Maneuver>
-    ): ManeuverResult.GetRoadShields {
+        maneuvers: List<Maneuver>,
+        roadShieldContentManager: RoadShieldContentManager
+    ): Map<String, RoadShield?> {
         val range = startIndex..endIndex
-        val shields = roadShieldContentManager.getShields(
+
+        return roadShieldContentManager.getShields(
             maneuvers.filterIndexed { index, _ -> index in range }
         )
-
-        return ManeuverResult.GetRoadShields.Success(shields)
     }
 
     private fun processManeuverList(
         route: DirectionsRoute,
+        routeLeg: RouteLeg? = null,
+        maneuverState: ManeuverState,
         distanceFormatter: DistanceFormatter,
-        routeLeg: RouteLeg? = null
     ): ManeuverResult.GetManeuverList {
         if (!route.isSameRoute(maneuverState.route)) {
             maneuverState.route = route
             maneuverState.allManeuvers.clear()
             maneuverState.roadShields.clear()
             try {
-                createManeuverList(route, distanceFormatter)
+                createManeuverList(route, maneuverState, distanceFormatter)
             } catch (exception: RuntimeException) {
                 return ManeuverResult.GetManeuverList.Failure(exception.message)
             }
@@ -82,6 +86,7 @@ internal class ManeuverProcessor {
 
     private fun processManeuverList(
         routeProgress: RouteProgress,
+        maneuverState: ManeuverState,
         distanceFormatter: DistanceFormatter
     ): ManeuverResult.GetManeuverListWithProgress {
         return try {
@@ -96,7 +101,7 @@ internal class ManeuverProcessor {
                     maneuverState.route = route
                     maneuverState.allManeuvers.clear()
                     maneuverState.roadShields.clear()
-                    createManeuverList(route, distanceFormatter)
+                    createManeuverList(route, maneuverState, distanceFormatter)
                 }
                 val filteredList = ifNonNull(
                     stepIndex,
@@ -115,13 +120,19 @@ internal class ManeuverProcessor {
                     ManeuverResult.GetManeuverListWithProgress.Success(it)
                 } ?: ManeuverResult.GetManeuverListWithProgress.Failure("")
             }
-                ?: ManeuverResult.GetManeuverListWithProgress.Failure("$currentBanner cannot be null")
+                ?: ManeuverResult.GetManeuverListWithProgress.Failure(
+                    "$currentBanner cannot be null"
+                )
         } catch (exception: Exception) {
             ManeuverResult.GetManeuverListWithProgress.Failure(exception.message)
         }
     }
 
-    private fun createManeuverList(route: DirectionsRoute, distanceFormatter: DistanceFormatter) {
+    private fun createManeuverList(
+        route: DirectionsRoute,
+        maneuverState: ManeuverState,
+        distanceFormatter: DistanceFormatter
+    ) {
         ifNonNull(route.legs()) { routeLegs ->
             routeLegs.forEach { routeLeg ->
                 ifNonNull(routeLeg?.steps()) { steps ->

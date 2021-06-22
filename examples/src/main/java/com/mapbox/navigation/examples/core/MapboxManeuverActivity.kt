@@ -38,8 +38,11 @@ import com.mapbox.navigation.core.replay.route.ReplayRouteMapper
 import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
 import com.mapbox.navigation.examples.core.databinding.LayoutActivityManeuverTwoBinding
-import com.mapbox.navigation.ui.maneuver.api.*
-import com.mapbox.navigation.ui.maneuver.model.*
+import com.mapbox.navigation.ui.maneuver.api.ManeuverCallback
+import com.mapbox.navigation.ui.maneuver.api.MapboxManeuverApi
+import com.mapbox.navigation.ui.maneuver.api.RoadShieldCallback
+import com.mapbox.navigation.ui.maneuver.model.Maneuver
+import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maps.internal.route.line.MapboxRouteLineApiExtensions.setRoutes
 import com.mapbox.navigation.ui.maps.location.NavigationLocationProvider
 import com.mapbox.navigation.ui.maps.route.arrow.api.MapboxRouteArrowApi
@@ -64,7 +67,7 @@ import kotlinx.coroutines.launch
  * attention to its usage. Long press anywhere on the map to set a destination and trigger
  * navigation.
  */
-class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
+class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
 
     private lateinit var mapboxMap: MapboxMap
     private lateinit var mapboxNavigation: MapboxNavigation
@@ -179,7 +182,7 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 }
             }
             mapboxRoute = routes[0]
-            //maneuverApi.getManeuverList(routes[0], null, callbackV2)
+            // maneuverApi.getManeuverList(routes[0], null, callbackV2)
             mapboxReplayer.stop()
             mapboxReplayer.clearEvents()
         }
@@ -334,19 +337,19 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.longitude,
                 currentLocation.latitude
             )
-            //findRoute(originPoint, point)
+            // findRoute(originPoint, point)
             val o = Point.fromLngLat(-121.981985, 37.529766)
             val o1 = Point.fromLngLat(-121.978472, 37.529749)
             val d = Point.fromLngLat(-121.971343, 37.535366)
             findRoute(o, listOf(o1), d)
             // Route with multiple maneuver at both first and last
-            //val o = Point.fromLngLat(-121.981985, 37.529766)
-            //val d = Point.fromLngLat(-121.986208, 37.522779)
-            //findRoute(o, d)
+            // val o = Point.fromLngLat(-121.981985, 37.529766)
+            // val d = Point.fromLngLat(-121.986208, 37.522779)
+            // findRoute(o, d)
             // Route with multiple maneuver at only last
-            //val o = Point.fromLngLat(-121.98198458807478, 37.529766392226776)
-            //val d = Point.fromLngLat(-121.97966757718049, 37.52396897764474)
-            //findRoute(o, d)
+            // val o = Point.fromLngLat(-121.98198458807478, 37.529766392226776)
+            // val d = Point.fromLngLat(-121.97966757718049, 37.52396897764474)
+            // findRoute(o, d)
         }
         return false
     }

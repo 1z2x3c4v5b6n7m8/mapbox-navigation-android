@@ -59,7 +59,7 @@
     </activity>
 
     <activity
-        android:name=".MapboxManeuverActivityV2"
+        android:name=".MapboxManeuverActivity"
         android:label="V2 Maneuver Example">
     </activity>
 

@@ -16,7 +16,13 @@ import com.mapbox.navigation.ui.maneuver.R
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxSubManeuverLayoutBinding
-import com.mapbox.navigation.ui.maneuver.model.*
+import com.mapbox.navigation.ui.maneuver.model.Maneuver
+import com.mapbox.navigation.ui.maneuver.model.ManeuverError
+import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
+import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
+import com.mapbox.navigation.ui.maneuver.model.StepDistance
+import com.mapbox.navigation.ui.maneuver.model.SubManeuver
+import com.mapbox.navigation.ui.maneuver.model.TurnIconResources
 
 /**
  * Default view to render a maneuver.
@@ -58,7 +64,7 @@ class MapboxManeuverView : ConstraintLayout {
         initAttributes(attrs)
     }
 
-    //private val laneGuidanceAdapter = MapboxLaneGuidanceAdapter(context)
+    // private val laneGuidanceAdapter = MapboxLaneGuidanceAdapter(context)
     private val upcomingManeuverAdapter = MapboxUpcomingManeuverAdapter(context)
     private val binding = MapboxManeuverLayoutBinding.inflate(
         LayoutInflater.from(context),
@@ -98,13 +104,16 @@ class MapboxManeuverView : ConstraintLayout {
      * @param maneuver Expected
      */
     fun renderManeuver(maneuvers: Expected<ManeuverError, List<Maneuver>>) {
-        maneuvers.fold({ error ->
-            //
-        }, { list ->
-            if (list.isNotEmpty()) {
-                drawManeuver(list[0])
+        maneuvers.fold(
+            { error ->
+                //
+            },
+            { list ->
+                if (list.isNotEmpty()) {
+                    drawManeuver(list[0])
+                }
             }
-        })
+        )
     }
 
     /**

@@ -33,7 +33,7 @@ class StepDistance internal constructor(
 
     private fun Double?.notEqualDelta(other: Double?): Boolean {
         return ifNonNull(this, other) { d1, d2 ->
-            abs(d1/d2 - 1) > 0.1
+            abs(d1 / d2 - 1) > 0.1
         } ?: false
     }
 }

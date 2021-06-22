@@ -28,15 +28,18 @@ internal class RoadShieldContentManager {
     private val awaitingCallbacks = mutableListOf<() -> Boolean>()
 
     init {
-        job.scope.monitorChannelWithException(invalidationChannel, {
-            val iterator = awaitingCallbacks.iterator()
-            while (iterator.hasNext()) {
-                val remove = iterator.next().invoke()
-                if (remove) {
-                    iterator.remove()
+        job.scope.monitorChannelWithException(
+            invalidationChannel,
+            {
+                val iterator = awaitingCallbacks.iterator()
+                while (iterator.hasNext()) {
+                    val remove = iterator.next().invoke()
+                    if (remove) {
+                        iterator.remove()
+                    }
                 }
             }
-        })
+        )
     }
 
     suspend fun getShields(

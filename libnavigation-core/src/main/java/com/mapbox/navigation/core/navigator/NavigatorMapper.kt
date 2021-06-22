@@ -19,7 +19,6 @@ import com.mapbox.navigation.base.trip.model.RouteProgressState
 import com.mapbox.navigation.base.trip.model.RouteStepProgress
 import com.mapbox.navigation.base.trip.model.roadobject.UpcomingRoadObject
 import com.mapbox.navigation.core.trip.session.MapMatcherResult
-import com.mapbox.navigation.navigator.internal.MapboxNativeNavigatorImpl
 import com.mapbox.navigation.navigator.internal.TripStatus
 import com.mapbox.navigation.utils.internal.ifNonNull
 import com.mapbox.navigator.BannerComponent

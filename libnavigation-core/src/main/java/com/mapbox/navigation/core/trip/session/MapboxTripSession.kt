@@ -7,7 +7,6 @@ import com.mapbox.android.core.location.LocationEngineCallback
 import com.mapbox.android.core.location.LocationEngineResult
 import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsRoute
-import com.mapbox.api.directions.v5.models.RouteLeg
 import com.mapbox.api.directions.v5.models.VoiceInstructions
 import com.mapbox.base.common.logger.Logger
 import com.mapbox.base.common.logger.model.Message
@@ -18,10 +17,11 @@ import com.mapbox.navigation.base.trip.model.RouteProgressState
 import com.mapbox.navigation.base.trip.model.roadobject.UpcomingRoadObject
 import com.mapbox.navigation.core.internal.utils.isSameRoute
 import com.mapbox.navigation.core.internal.utils.isSameUuid
-import com.mapbox.navigation.core.navigator.*
+import com.mapbox.navigation.core.navigator.convertState
 import com.mapbox.navigation.core.navigator.getMapMatcherResult
 import com.mapbox.navigation.core.navigator.getRouteInitInfo
 import com.mapbox.navigation.core.navigator.getRouteProgressFrom
+import com.mapbox.navigation.core.navigator.mapToDirectionsApi
 import com.mapbox.navigation.core.navigator.toFixLocation
 import com.mapbox.navigation.core.navigator.toLocation
 import com.mapbox.navigation.core.navigator.toLocations
@@ -584,7 +584,9 @@ internal class MapboxTripSession(
                     ifNonNull(currentLeg?.steps()) { steps ->
                         val currentStep = steps[status.navigationStatus.stepIndex]
                         var bannerInstructions =
-                            status.navigationStatus.bannerInstruction?.mapToDirectionsApi(currentStep)
+                            status.navigationStatus.bannerInstruction?.mapToDirectionsApi(
+                                currentStep
+                            )
                         val state = status.navigationStatus.routeState.convertState()
                         if (state == RouteProgressState.INITIALIZED) {
                             bannerInstructions =

@@ -135,7 +135,6 @@ class MapboxCustomStyleActivity : AppCompatActivity(), OnMapLongClickListener {
 
     private val maneuverCallback = object : ManeuverCallback {
         override fun onError(error: Expected<ManeuverError, Maneuver>) {
-
         }
 
         override fun onManeuvers(maneuvers: Expected<ManeuverError, List<Maneuver>>) {
@@ -143,11 +142,14 @@ class MapboxCustomStyleActivity : AppCompatActivity(), OnMapLongClickListener {
                 binding.maneuverView.visibility = View.VISIBLE
             }
             binding.maneuverView.renderManeuver(maneuvers)
-            maneuvers.fold({ error ->
-                //
-            }, { list ->
-                binding.maneuverView.renderUpcomingManeuvers(list.subList(1, list.size))
-            })
+            maneuvers.fold(
+                { error ->
+                    //
+                },
+                { list ->
+                    binding.maneuverView.renderUpcomingManeuvers(list.subList(1, list.size))
+                }
+            )
         }
     }
 

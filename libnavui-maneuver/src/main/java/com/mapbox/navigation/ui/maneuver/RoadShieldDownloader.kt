@@ -22,13 +22,19 @@ internal object RoadShieldDownloader {
 
     suspend fun downloadImage(imageUrl: String): Expected<String, ByteArray> =
         suspendCoroutine { continuation ->
-            CommonSingletonModuleProvider.httpServiceInstance.request(getHttpRequest(imageUrl)) { response ->
+            CommonSingletonModuleProvider.httpServiceInstance.request(
+                getHttpRequest(imageUrl)
+            ) { response ->
                 when {
                     response.result.isValue -> {
                         response.result.value?.let { responseData ->
                             when (responseData.code) {
                                 CODE_200 -> {
-                                    continuation.resume(ExpectedFactory.createValue(responseData.data))
+                                    continuation.resume(
+                                        ExpectedFactory.createValue(
+                                            responseData.data
+                                        )
+                                    )
                                 }
                                 CODE_401 -> {
                                     continuation.resume(

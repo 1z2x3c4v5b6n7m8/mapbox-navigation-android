@@ -1,7 +1,6 @@
 package com.mapbox.navigation.core.trip.session
 
 import com.mapbox.api.directions.v5.models.BannerInstructions
-import com.mapbox.navigation.base.trip.model.RouteProgress
 
 internal class BannerInstructionEvent {
 

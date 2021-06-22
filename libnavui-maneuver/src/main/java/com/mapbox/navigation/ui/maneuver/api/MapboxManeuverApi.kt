@@ -10,8 +10,10 @@ import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.ui.maneuver.ManeuverAction
 import com.mapbox.navigation.ui.maneuver.ManeuverProcessor
 import com.mapbox.navigation.ui.maneuver.ManeuverResult
-import com.mapbox.navigation.ui.maneuver.model.ManeuverError
+import com.mapbox.navigation.ui.maneuver.ManeuverState
+import com.mapbox.navigation.ui.maneuver.RoadShieldContentManager
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
+import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.utils.internal.JobControl
 import com.mapbox.navigation.utils.internal.ThreadController
 import kotlinx.coroutines.Job
@@ -24,6 +26,8 @@ class MapboxManeuverApi internal constructor(
 
     private val mainJobController: JobControl by lazy { ThreadController.getMainScopeAndRootJob() }
     private var routeShieldJob: Job? = null
+    private val maneuverState = ManeuverState()
+    private val roadShieldContentManager = RoadShieldContentManager()
 
     /**
      * @param formatter contains various instances for use in formatting distance related data
@@ -31,7 +35,7 @@ class MapboxManeuverApi internal constructor(
      *
      * @return a [MapboxManeuverApi]
      */
-    constructor(formatter: DistanceFormatter) : this(formatter, ManeuverProcessor())
+    constructor(formatter: DistanceFormatter) : this(formatter, ManeuverProcessor)
 
     /**
      * Given a [DirectionsRoute] the function iterates through all the [RouteLeg] in a [DirectionsRoute].
@@ -45,11 +49,16 @@ class MapboxManeuverApi internal constructor(
      * @param callback ManeuverCallback invoked with appropriate result
      */
     fun getManeuvers(
-            route: DirectionsRoute,
-            routeLeg: RouteLeg? = null,
-            callback: ManeuverCallback,
+        route: DirectionsRoute,
+        routeLeg: RouteLeg? = null,
+        callback: ManeuverCallback,
     ) {
-        val action = ManeuverAction.GetManeuverListWithRoute(route, routeLeg, distanceFormatter)
+        val action = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            routeLeg,
+            maneuverState,
+            distanceFormatter
+        )
         when (val result = processor.process(action) as ManeuverResult.GetManeuverList) {
             is ManeuverResult.GetManeuverList.Success -> {
                 val allManeuvers = result.maneuvers
@@ -82,9 +91,11 @@ class MapboxManeuverApi internal constructor(
         routeProgress: RouteProgress,
         callback: ManeuverCallback
     ) {
-        val action = ManeuverAction.GetManeuverList(routeProgress, distanceFormatter)
-        when (val result = processor.process(action) as
-            ManeuverResult.GetManeuverListWithProgress) {
+        val action = ManeuverAction.GetManeuverList(routeProgress, maneuverState, distanceFormatter)
+        when (
+            val result = processor.process(action) as
+                ManeuverResult.GetManeuverListWithProgress
+        ) {
             is ManeuverResult.GetManeuverListWithProgress.Success -> {
                 val allManeuvers = result.maneuvers
                 callback.onManeuvers(ExpectedFactory.createValue(allManeuvers))
@@ -105,9 +116,8 @@ class MapboxManeuverApi internal constructor(
     }
 
     // TODO: The view needs to maintain the Map<String, RoadShield> so that it doesn't blink.
-    // TODO: Move the state from Processor to API
     // TODO: Write unit tests
-    // TODO: Test off-route, multiLeg and other geographies
+    // TODO: Test off-route and other geographies
     /**
      * Given a list of [Maneuver] the function iterates through the list starting at startIndex and
      * ending at endIndex to request shields for urls associated in [RoadShieldComponentNode]. If
@@ -128,16 +138,13 @@ class MapboxManeuverApi internal constructor(
             (routeShieldJob != null && routeShieldJob!!.isCompleted && !routeShieldJob!!.isActive)
         ) {
             routeShieldJob = mainJobController.scope.launch {
-                when (val result = processor.processRoadShields(startIndex, endIndex, maneuvers)) {
-                    is ManeuverResult.GetRoadShields.Success -> {
-                        callback.onRoadShields(ExpectedFactory.createValue(result.roadShields))
-                    }
-                    is ManeuverResult.GetRoadShields.Failure -> {
-                        callback.onRoadShields(
-                            ExpectedFactory.createError(ManeuverError(result.error))
-                        )
-                    }
-                }
+                val roadShields = processor.processRoadShields(
+                    startIndex,
+                    endIndex,
+                    maneuvers,
+                    roadShieldContentManager
+                )
+                callback.onRoadShields(ExpectedFactory.createValue(roadShields))
             }
         }
     }
