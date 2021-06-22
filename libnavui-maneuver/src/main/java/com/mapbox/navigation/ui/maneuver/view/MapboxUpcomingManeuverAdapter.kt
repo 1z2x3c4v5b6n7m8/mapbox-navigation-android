@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxItemUpcomingManeuversLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
+import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.StepDistance
@@ -33,7 +34,7 @@ class MapboxUpcomingManeuverAdapter(
     @StyleRes private var primaryManeuverAppearance: Int? = null
     @StyleRes private var secondaryManeuverAppearance: Int? = null
     private val inflater = LayoutInflater.from(context)
-    private val upcomingManeuverList = mutableListOf<ManeuverV2>()
+    private val upcomingManeuverList = mutableListOf<Maneuver>()
 
     /**
      * Binds the given View to the position.
@@ -99,7 +100,7 @@ class MapboxUpcomingManeuverAdapter(
      * Invoke to add all upcoming maneuvers to the recycler view.
      * @param upcomingManeuvers List<Maneuver>
      */
-    fun addUpcomingManeuvers(upcomingManeuvers: List<ManeuverV2>) {
+    fun addUpcomingManeuvers(upcomingManeuvers: List<Maneuver>) {
         val diffCallback = MapboxManeuverDiffCallback(upcomingManeuverList, upcomingManeuvers)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         upcomingManeuverList.clear()
@@ -120,7 +121,7 @@ class MapboxUpcomingManeuverAdapter(
          * Invoke the method to bind the maneuver to the view.
          * @param maneuver Maneuver
          */
-        fun bindUpcomingManeuver(maneuver: ManeuverV2) {
+        fun bindUpcomingManeuver(maneuver: Maneuver) {
             val primary = maneuver.primary
             val secondary = maneuver.secondary
             val stepDistance = maneuver.stepDistance

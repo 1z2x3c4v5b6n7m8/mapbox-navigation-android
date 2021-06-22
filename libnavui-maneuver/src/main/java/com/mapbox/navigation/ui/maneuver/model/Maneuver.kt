@@ -1,6 +1,6 @@
 package com.mapbox.navigation.ui.maneuver.model
 
-class ManeuverV2 internal constructor(
+class Maneuver internal constructor(
     val primary: PrimaryManeuver,
     val stepDistance: StepDistance,
     val secondary: SecondaryManeuver?,
@@ -12,7 +12,7 @@ class ManeuverV2 internal constructor(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as ManeuverV2
+        other as Maneuver
 
         if (primary != other.primary) return false
         if (secondary != other.secondary) return false

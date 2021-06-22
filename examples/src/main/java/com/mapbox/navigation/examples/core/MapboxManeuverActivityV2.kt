@@ -87,8 +87,8 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
      * The [MapboxManeuverApi] consumes route progress and banner instructions data
      * and produces trip related data that is consumed by the [MapboxManeuverView] in the layout.
      */
-    private val maneuverApi: MapboxManeuverApiV2 by lazy {
-        MapboxManeuverApiV2(MapboxDistanceFormatter(distanceFormatter))
+    private val maneuverApi: MapboxManeuverApi by lazy {
+        MapboxManeuverApi(MapboxDistanceFormatter(distanceFormatter))
     }
 
     private val routeLineResources: RouteLineResources by lazy {
@@ -133,12 +133,12 @@ class MapboxManeuverActivityV2 : AppCompatActivity(), OnMapLongClickListener {
         )
     }
 
-    private val callbackV2 = object : ManeuverCallbackV2 {
-        override fun onError(error: Expected<ManeuverError, ManeuverV2>) {
+    private val callbackV2 = object : ManeuverCallback {
+        override fun onError(error: Expected<ManeuverError, Maneuver>) {
             //
         }
 
-        override fun onManeuvers(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
+        override fun onManeuvers(maneuvers: Expected<ManeuverError, List<Maneuver>>) {
             binding.maneuverView.renderManeuver(maneuvers)
             maneuvers.onValue {
                 binding.maneuverView.renderUpcomingManeuvers(it.subList(1, it.size))

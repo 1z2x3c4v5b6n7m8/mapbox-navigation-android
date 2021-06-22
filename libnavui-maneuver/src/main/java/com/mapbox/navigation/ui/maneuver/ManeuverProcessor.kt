@@ -5,9 +5,6 @@ import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.BannerText
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.RouteLeg
-import com.mapbox.common.HttpMethod
-import com.mapbox.common.HttpRequest
-import com.mapbox.common.UAComponents
 import com.mapbox.navigation.base.formatter.DistanceFormatter
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.internal.utils.isSameRoute
@@ -16,29 +13,30 @@ import com.mapbox.navigation.ui.maneuver.model.DelimiterComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitNumberComponentNode
 import com.mapbox.navigation.ui.maneuver.model.LegToManeuvers
-import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
+import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
+import com.mapbox.navigation.ui.maneuver.model.StepDistance
 import com.mapbox.navigation.ui.maneuver.model.StepIndexToManeuvers
 import com.mapbox.navigation.ui.maneuver.model.SubManeuver
 import com.mapbox.navigation.ui.maneuver.model.TextComponentNode
 import com.mapbox.navigation.ui.utils.internal.ifNonNull
 import java.util.UUID
 
-internal class ManeuverProcessorV2 {
+internal class ManeuverProcessor {
 
     private val maneuverState = ManeuverState()
     private val urlToShieldMap = hashMapOf<String, ByteArray?>()
 
     private val roadShieldContentManager = RoadShieldContentManager()
 
-    fun process(action: ManeuverActionV2): ManeuverResultV2 {
+    fun process(action: ManeuverAction): ManeuverResult {
         return when (action) {
-            is ManeuverActionV2.GetManeuverListWithRoute -> {
+            is ManeuverAction.GetManeuverListWithRoute -> {
                 processManeuverList(action.route, action.distanceFormatter, action.routeLeg)
             }
-            is ManeuverActionV2.GetManeuverList -> {
+            is ManeuverAction.GetManeuverList -> {
                 processManeuverList(action.routeProgress, action.distanceFormatter)
             }
             else -> {
@@ -50,35 +48,21 @@ internal class ManeuverProcessorV2 {
     suspend fun processRoadShields(
         startIndex: Int,
         endIndex: Int,
-        maneuvers: List<ManeuverV2>
-    ): ManeuverResultV2.GetRoadShields {
+        maneuvers: List<Maneuver>
+    ): ManeuverResult.GetRoadShields {
         val range = startIndex..endIndex
         val shields = roadShieldContentManager.getShields(
             maneuvers.filterIndexed { index, _ -> index in range }
         )
 
-        return ManeuverResultV2.GetRoadShields.Success(shields)
-    }
-
-    private fun getHttpRequest(imageBaseUrl: String): HttpRequest {
-        return HttpRequest.Builder()
-            .url(imageBaseUrl.plus(SVG))
-            .body(byteArrayOf())
-            .headers(hashMapOf(Pair(USER_AGENT_KEY, USER_AGENT_VALUE)))
-            .method(HttpMethod.GET)
-            .uaComponents(
-                UAComponents.Builder()
-                    .sdkIdentifierComponent(SDK_IDENTIFIER)
-                    .build()
-            )
-            .build()
+        return ManeuverResult.GetRoadShields.Success(shields)
     }
 
     private fun processManeuverList(
         route: DirectionsRoute,
         distanceFormatter: DistanceFormatter,
         routeLeg: RouteLeg? = null
-    ): ManeuverResultV2.GetManeuverList {
+    ): ManeuverResult.GetManeuverList {
         if (!route.isSameRoute(maneuverState.route)) {
             maneuverState.route = route
             maneuverState.allManeuvers.clear()
@@ -87,21 +71,21 @@ internal class ManeuverProcessorV2 {
             try {
                 createManeuverList(route, distanceFormatter)
             } catch (exception: RuntimeException) {
-                return ManeuverResultV2.GetManeuverList.Failure(exception.message)
+                return ManeuverResult.GetManeuverList.Failure(exception.message)
             }
         }
         return try {
             val allManeuverList = readManeuverListWith(maneuverState.allManeuvers, routeLeg)
-            ManeuverResultV2.GetManeuverList.Success(allManeuverList)
+            ManeuverResult.GetManeuverList.Success(allManeuverList)
         } catch (exception: RuntimeException) {
-            ManeuverResultV2.GetManeuverList.Failure(exception.message)
+            ManeuverResult.GetManeuverList.Failure(exception.message)
         }
     }
 
     private fun processManeuverList(
         routeProgress: RouteProgress,
         distanceFormatter: DistanceFormatter
-    ): ManeuverResultV2.GetManeuverListWithProgress {
+    ): ManeuverResult.GetManeuverListWithProgress {
         return try {
             val route = routeProgress.route
             val currentBanner = routeProgress.bannerInstructions
@@ -131,12 +115,12 @@ internal class ManeuverProcessorV2 {
                     )
                 }
                 ifNonNull(filteredList) {
-                    ManeuverResultV2.GetManeuverListWithProgress.Success(it)
-                } ?: ManeuverResultV2.GetManeuverListWithProgress.Failure("")
+                    ManeuverResult.GetManeuverListWithProgress.Success(it)
+                } ?: ManeuverResult.GetManeuverListWithProgress.Failure("")
             }
-                ?: ManeuverResultV2.GetManeuverListWithProgress.Failure("$currentBanner cannot be null")
+                ?: ManeuverResult.GetManeuverListWithProgress.Failure("$currentBanner cannot be null")
         } catch (exception: Exception) {
-            ManeuverResultV2.GetManeuverListWithProgress.Failure(exception.message)
+            ManeuverResult.GetManeuverListWithProgress.Failure(exception.message)
         }
     }
 
@@ -147,7 +131,7 @@ internal class ManeuverProcessorV2 {
                     val stepList = mutableListOf<StepIndexToManeuvers>()
                     for (stepIndex in 0..steps.lastIndex) {
                         steps[stepIndex].bannerInstructions()?.let { bannerInstruction ->
-                            val maneuverList = mutableListOf<ManeuverV2>()
+                            val maneuverList = mutableListOf<Maneuver>()
                             bannerInstruction.forEach { banner ->
                                 maneuverList.add(transformToManeuver(banner, distanceFormatter))
                             }
@@ -170,11 +154,11 @@ internal class ManeuverProcessorV2 {
     private fun readManeuverListWith(
         list: List<LegToManeuvers>,
         routeLeg: RouteLeg? = null
-    ): List<ManeuverV2> {
+    ): List<Maneuver> {
         if (list.isEmpty()) {
             throw RuntimeException("$list cannot be empty")
         }
-        val maneuverList = mutableListOf<ManeuverV2>()
+        val maneuverList = mutableListOf<Maneuver>()
         when (routeLeg == null) {
             true -> {
                 list[0].stepIndexToManeuvers.forEach { stepIndexToManeuver ->
@@ -198,10 +182,10 @@ internal class ManeuverProcessorV2 {
     private fun createFilteredList(
         stepIndex: Int,
         routeLeg: RouteLeg,
-        currentManeuver: ManeuverV2,
+        currentManeuver: Maneuver,
         inputList: List<LegToManeuvers>,
         stepDistanceRemaining: Double
-    ): List<ManeuverV2> {
+    ): List<Maneuver> {
         val legToManeuver = routeLeg.findIn(inputList)
         val stepToManeuverList = legToManeuver.stepIndexToManeuvers
         val legStep = stepIndex.findIn(stepToManeuverList)
@@ -224,7 +208,7 @@ internal class ManeuverProcessorV2 {
 
     private fun updateDistanceRemaining(
         legStep: StepIndexToManeuvers,
-        currentManeuver: ManeuverV2,
+        currentManeuver: Maneuver,
         stepDistanceRemaining: Double
     ): Int {
         var maneuverIndex = Int.MIN_VALUE
@@ -248,8 +232,8 @@ internal class ManeuverProcessorV2 {
         maneuverIndex: Int,
         indexOfLegStep: Int,
         inputList: List<StepIndexToManeuvers>
-    ): List<ManeuverV2> {
-        val list = mutableListOf<ManeuverV2>()
+    ): List<Maneuver> {
+        val list = mutableListOf<Maneuver>()
         if (maneuverIndex == Int.MIN_VALUE) {
             for (i in indexOfLegStep..inputList.lastIndex) {
                 list.addAll(inputList[i].maneuverList)
@@ -271,14 +255,14 @@ internal class ManeuverProcessorV2 {
         bannerInstructions: BannerInstructions,
         distanceFormatter: DistanceFormatter,
         routeProgress: RouteProgress? = null
-    ): ManeuverV2 {
+    ): Maneuver {
         val primaryManeuver = getPrimaryManeuver(bannerInstructions.primary())
         val secondaryManeuver = getSecondaryManeuver(bannerInstructions.secondary())
         val subManeuver = getSubManeuverText(bannerInstructions.sub())
         val totalStepDistance = bannerInstructions.distanceAlongGeometry()
         val stepDistanceRemaining = getStepDistanceRemaining(routeProgress)
         val stepDistance = StepDistance(distanceFormatter, totalStepDistance, stepDistanceRemaining)
-        return ManeuverV2(
+        return Maneuver(
             primaryManeuver,
             stepDistance,
             secondaryManeuver,
@@ -408,12 +392,5 @@ internal class ManeuverProcessorV2 {
             }
         }
         return componentList
-    }
-
-    private companion object {
-        private const val SVG = ".svg"
-        private const val USER_AGENT_KEY = "User-Agent"
-        private const val USER_AGENT_VALUE = "MapboxJava/"
-        private const val SDK_IDENTIFIER = "mapbox-navigation-ui-android"
     }
 }

@@ -10,12 +10,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView.HORIZONTAL
 import androidx.recyclerview.widget.RecyclerView.VERTICAL
 import com.mapbox.bindgen.Expected
-import com.mapbox.navigation.base.formatter.DistanceFormatter
-import com.mapbox.navigation.base.formatter.DistanceFormatterOptions
-import com.mapbox.navigation.core.internal.formatter.MapboxDistanceFormatter
 import com.mapbox.navigation.ui.maneuver.R
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxManeuverLayoutBinding
@@ -101,7 +97,7 @@ class MapboxManeuverView : ConstraintLayout {
      * Invoke the method to render primary, secondary, sub instructions and lane information.
      * @param maneuver Expected
      */
-    fun renderManeuver(maneuvers: Expected<ManeuverError, List<ManeuverV2>>) {
+    fun renderManeuver(maneuvers: Expected<ManeuverError, List<Maneuver>>) {
         maneuvers.fold({ error ->
             //
         }, { list ->
@@ -292,7 +288,7 @@ class MapboxManeuverView : ConstraintLayout {
      * Invoke the method to render list of upcoming instructions on top of [MapboxManeuverView]
      * @param maneuvers List<Maneuver>
      */
-    fun renderUpcomingManeuvers(maneuvers: List<ManeuverV2>) {
+    fun renderUpcomingManeuvers(maneuvers: List<Maneuver>) {
         upcomingManeuverAdapter.addUpcomingManeuvers(maneuvers)
     }
 
@@ -369,7 +365,7 @@ class MapboxManeuverView : ConstraintLayout {
         )
     }
 
-    private fun drawManeuver(maneuver: ManeuverV2) {
+    private fun drawManeuver(maneuver: Maneuver) {
         val primary = maneuver.primary
         val secondary = maneuver.secondary
         val sub = maneuver.sub

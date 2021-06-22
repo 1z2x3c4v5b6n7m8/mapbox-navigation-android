@@ -3,7 +3,7 @@ package com.mapbox.navigation.ui.maneuver
 import com.mapbox.base.common.logger.model.Message
 import com.mapbox.base.common.logger.model.Tag
 import com.mapbox.navigation.ui.maneuver.model.Component
-import com.mapbox.navigation.ui.maneuver.model.ManeuverV2
+import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.RoadShield
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
 import com.mapbox.navigation.utils.internal.LoggerProvider
@@ -40,7 +40,7 @@ internal class RoadShieldContentManager {
     }
 
     suspend fun getShields(
-        maneuvers: List<ManeuverV2>
+        maneuvers: List<Maneuver>
     ): Map<String, RoadShield?> {
         val idToUrlMap = hashMapOf<String, String?>()
         maneuvers.forEach { maneuver ->

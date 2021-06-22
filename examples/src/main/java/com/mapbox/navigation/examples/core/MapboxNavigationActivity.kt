@@ -40,6 +40,10 @@ import com.mapbox.navigation.core.trip.session.VoiceInstructionsObserver
 import com.mapbox.navigation.examples.core.databinding.LayoutActivityNavigationBinding
 import com.mapbox.navigation.examples.util.Utils
 import com.mapbox.navigation.ui.base.util.MapboxNavigationConsumer
+import com.mapbox.navigation.ui.maneuver.api.ManeuverCallback
+import com.mapbox.navigation.ui.maneuver.api.MapboxManeuverApi
+import com.mapbox.navigation.ui.maneuver.model.Maneuver
+import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maps.camera.NavigationCamera
 import com.mapbox.navigation.ui.maps.camera.data.MapboxNavigationViewportDataSource
 import com.mapbox.navigation.ui.maps.camera.lifecycle.NavigationBasicGesturesHandler
@@ -155,6 +159,21 @@ class MapboxNavigationActivity : AppCompatActivity() {
             }
         }
 
+    private val maneuverCallback = object : ManeuverCallback {
+        override fun onError(error: Expected<ManeuverError, Maneuver>) {
+
+        }
+
+        override fun onManeuvers(maneuvers: Expected<ManeuverError, List<Maneuver>>) {
+            binding.maneuverView.renderManeuver(maneuvers)
+            maneuvers.fold({ error ->
+                //
+            }, { list ->
+                binding.maneuverView.renderUpcomingManeuvers(list.subList(1, list.size))
+            })
+        }
+    }
+
     private val speechCallback =
         MapboxNavigationConsumer<Expected<SpeechError, SpeechValue>> { expected ->
             expected.fold(
@@ -211,37 +230,10 @@ class MapboxNavigationActivity : AppCompatActivity() {
             }
 
             // update top maneuver instructions
-            maneuverApi.getUpcomingManeuverList(
-                routeProgress
-            ) { maneuvers ->
-                maneuvers.onValue {
-                    binding.maneuverView.renderUpcomingManeuvers(it)
-                }
-            }
-            val routeStepProgress = routeProgress.currentLegProgress?.currentStepProgress
-            if (routeStepProgress != null) {
-                maneuverApi.getStepDistanceRemaining(
-                    routeStepProgress
-                ) { distanceRemaining ->
-                    distanceRemaining.onValue {
-                        binding.maneuverView.renderDistanceRemaining(it)
-                    }
-                }
-            }
+            maneuverApi.getManeuverList(routeProgress, maneuverCallback)
 
             // update bottom trip progress summary
             binding.tripProgressView.render(tripProgressApi.getTripProgress(routeProgress))
-        }
-    }
-
-    /* ----- Maneuver instruction callbacks ----- */
-    private val bannerInstructionsObserver = BannerInstructionsObserver { bannerInstructions ->
-        binding.maneuverView.visibility = VISIBLE
-        maneuverApi.getManeuver(
-            bannerInstructions
-        ) { maneuver ->
-            // updates the maneuver view whenever new data is available
-            binding.maneuverView.renderManeuver(maneuver)
         }
     }
 
@@ -460,7 +452,6 @@ class MapboxNavigationActivity : AppCompatActivity() {
         mapboxNavigation.registerRouteProgressObserver(routeProgressObserver)
         mapboxNavigation.registerLocationObserver(locationObserver)
         mapboxNavigation.registerVoiceInstructionsObserver(voiceInstructionsObserver)
-        mapboxNavigation.registerBannerInstructionsObserver(bannerInstructionsObserver)
     }
 
     override fun onStop() {
@@ -470,7 +461,6 @@ class MapboxNavigationActivity : AppCompatActivity() {
         mapboxNavigation.unregisterRouteProgressObserver(routeProgressObserver)
         mapboxNavigation.unregisterLocationObserver(locationObserver)
         mapboxNavigation.unregisterVoiceInstructionsObserver(voiceInstructionsObserver)
-        mapboxNavigation.unregisterBannerInstructionsObserver(bannerInstructionsObserver)
     }
 
     override fun onDestroy() {
