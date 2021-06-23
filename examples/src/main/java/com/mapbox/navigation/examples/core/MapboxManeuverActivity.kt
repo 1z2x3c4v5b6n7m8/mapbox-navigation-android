@@ -125,9 +125,9 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
 
     private val roadShieldCallback = RoadShieldCallback { maneuvers, shields, errors ->
         maneuvers.forEach {
-            Log.e("test", "primary - id: ${it.primary.id}, text: ${it.primary.text}")
-            Log.e("test", "secondary - id: ${it.secondary?.id}, text: ${it.secondary?.text}")
-            Log.e("test", "sub - id: ${it.sub?.id}, text: ${it.sub?.text}")
+            Log.e("lp-test", "primary - id: ${it.primary.id}, text: ${it.primary.text}")
+            Log.e("lp-test", "secondary - id: ${it.secondary?.id}, text: ${it.secondary?.text}")
+            Log.e("lp-test", "sub - id: ${it.sub?.id}, text: ${it.sub?.text}")
         }
         shields.keys.forEach { key ->
             Log.e(
@@ -140,7 +140,7 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
             )
         }
         errors.keys.forEach { key ->
-            Log.e("test", "errors - id: $key, error: ${errors[key]}")
+            Log.e("lp-test", "errors - id: $key, error: ${errors[key]}")
         }
     }
 
@@ -155,7 +155,6 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
                 if (it.isNotEmpty()) {
                     binding.maneuverView.renderUpcomingManeuvers(it.subList(1, it.size))
                 }
-                Log.e("test", "getRoadShields called")
                 maneuverApi.getRoadShields(it, roadShieldCallback)
             }
         }

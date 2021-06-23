@@ -6,8 +6,8 @@ import com.mapbox.common.HttpMethod
 import com.mapbox.common.HttpRequest
 import com.mapbox.common.UAComponents
 import com.mapbox.common.core.module.CommonSingletonModuleProvider
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 internal object RoadShieldDownloader {
 
@@ -21,8 +21,8 @@ internal object RoadShieldDownloader {
     private const val CODE_404 = 404L
 
     suspend fun downloadImage(imageUrl: String): Expected<String, ByteArray> =
-        suspendCoroutine { continuation ->
-            CommonSingletonModuleProvider.httpServiceInstance.request(
+        suspendCancellableCoroutine { continuation ->
+            val id = CommonSingletonModuleProvider.httpServiceInstance.request(
                 getHttpRequest(imageUrl)
             ) { response ->
                 when {
@@ -70,6 +70,9 @@ internal object RoadShieldDownloader {
                         )
                     }
                 }
+            }
+            continuation.invokeOnCancellation {
+                CommonSingletonModuleProvider.httpServiceInstance.cancelRequest(id) {}
             }
         }
 

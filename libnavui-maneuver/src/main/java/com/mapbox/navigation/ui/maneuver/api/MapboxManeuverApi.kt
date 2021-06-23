@@ -147,6 +147,7 @@ class MapboxManeuverApi internal constructor(
      * Invoke the function to cancel any job invoked through other APIs
      */
     fun cancel() {
+        roadShieldContentManager.cancel()
         mainJobController.job.children.forEach {
             it.cancel()
         }

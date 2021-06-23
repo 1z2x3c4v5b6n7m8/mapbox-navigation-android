@@ -10,9 +10,10 @@ import com.mapbox.navigation.ui.maneuver.model.RoadShieldError
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldResult
 import com.mapbox.navigation.utils.internal.LoggerProvider
 import com.mapbox.navigation.utils.internal.ThreadController
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 internal class RoadShieldContentManager {
     private companion object {
@@ -58,7 +59,15 @@ internal class RoadShieldContentManager {
             prepareShields(idToUrlMap)
         }
 
-        return waitForShields(idToUrlMap)
+        return try {
+            waitForShields(idToUrlMap)
+        } catch (ex: CancellationException) {
+            val errors: Map<String, RoadShieldError> =
+                idToUrlMap
+                    .filter { it.value != null }
+                    .mapValues { RoadShieldError(it.value as String, "canceled") }
+            return RoadShieldResult(emptyMap(), errors)
+        }
     }
 
     fun cancel() {
@@ -100,8 +109,8 @@ internal class RoadShieldContentManager {
     private suspend fun waitForShields(
         idToUrlMap: Map<String, String?>
     ): RoadShieldResult {
-        return suspendCoroutine { continuation ->
-            awaitingCallbacks.add {
+        return suspendCancellableCoroutine { continuation ->
+            val callback = {
                 if (
                     idToUrlMap.keys.all {
                         maneuversToShieldsMap.containsKey(it)
@@ -120,13 +129,15 @@ internal class RoadShieldContentManager {
                             }
                         }
                     val errors = maneuversToFailuresMap.filterKeys { idToUrlMap.keys.contains(it) }
-                    continuation.resume(
-                        RoadShieldResult(shields, errors)
-                    )
-                    return@add true
+                    continuation.resume(RoadShieldResult(shields, errors))
+                    true
                 } else {
-                    return@add false
+                    false
                 }
+            }
+            awaitingCallbacks.add(callback)
+            continuation.invokeOnCancellation {
+                awaitingCallbacks.remove(callback)
             }
         }
     }
