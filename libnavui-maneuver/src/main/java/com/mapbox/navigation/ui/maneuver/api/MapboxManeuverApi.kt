@@ -16,7 +16,6 @@ import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.utils.internal.JobControl
 import com.mapbox.navigation.utils.internal.ThreadController
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class MapboxManeuverApi internal constructor(
@@ -25,7 +24,6 @@ class MapboxManeuverApi internal constructor(
 ) {
 
     private val mainJobController: JobControl by lazy { ThreadController.getMainScopeAndRootJob() }
-    private var routeShieldJob: Job? = null
     private val maneuverState = ManeuverState()
     private val roadShieldContentManager = RoadShieldContentManager()
 
@@ -128,24 +126,20 @@ class MapboxManeuverApi internal constructor(
      * @param startIndex starting position of item in the list
      * @param endIndex end position of item in the list
      */
+    @JvmOverloads
     fun getRoadShields(
         maneuvers: List<Maneuver>,
         callback: RoadShieldCallback,
         startIndex: Int = 0,
         endIndex: Int = maneuvers.lastIndex
     ) {
-        if (routeShieldJob == null ||
-            (routeShieldJob != null && routeShieldJob!!.isCompleted && !routeShieldJob!!.isActive)
-        ) {
-            routeShieldJob = mainJobController.scope.launch {
-                val roadShields = processor.processRoadShields(
-                    startIndex,
-                    endIndex,
-                    maneuvers,
-                    roadShieldContentManager
-                )
-                callback.onRoadShields(ExpectedFactory.createValue(roadShields))
-            }
+        mainJobController.scope.launch {
+            val result = roadShieldContentManager.getShields(
+                startIndex,
+                endIndex,
+                maneuvers
+            )
+            callback.onRoadShields(maneuvers, result.shields, result.errors)
         }
     }
 
@@ -153,6 +147,8 @@ class MapboxManeuverApi internal constructor(
      * Invoke the function to cancel any job invoked through other APIs
      */
     fun cancel() {
-        routeShieldJob?.cancel()
+        mainJobController.job.children.forEach {
+            it.cancel()
+        }
     }
 }

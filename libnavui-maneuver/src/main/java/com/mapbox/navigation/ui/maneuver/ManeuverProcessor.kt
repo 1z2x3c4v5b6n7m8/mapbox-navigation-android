@@ -17,7 +17,6 @@ import com.mapbox.navigation.ui.maneuver.model.LaneIndicator
 import com.mapbox.navigation.ui.maneuver.model.LegToManeuvers
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
-import com.mapbox.navigation.ui.maneuver.model.RoadShield
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
 import com.mapbox.navigation.ui.maneuver.model.SecondaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.StepDistance
@@ -47,19 +46,6 @@ internal object ManeuverProcessor {
                 )
             }
         }
-    }
-
-    suspend fun processRoadShields(
-        startIndex: Int,
-        endIndex: Int,
-        maneuvers: List<Maneuver>,
-        roadShieldContentManager: RoadShieldContentManager
-    ): Map<String, RoadShield?> {
-        val range = startIndex..endIndex
-
-        return roadShieldContentManager.getShields(
-            maneuvers.filterIndexed { index, _ -> index in range }
-        )
     }
 
     private fun processManeuverList(

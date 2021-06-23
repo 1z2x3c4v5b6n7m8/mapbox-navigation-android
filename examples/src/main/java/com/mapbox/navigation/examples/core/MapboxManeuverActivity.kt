@@ -123,17 +123,25 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
 
     private val replayProgressObserver = ReplayProgressObserver(mapboxReplayer)
 
-    private val roadShieldCallback = RoadShieldCallback { result ->
-        result.fold(
-            { error ->
-                //
-            },
-            { roadShield ->
-                roadShield.forEach { (key, value) ->
-                    Log.e("test", "id: $key, bitmap: $value")
-                }
-            }
-        )
+    private val roadShieldCallback = RoadShieldCallback { maneuvers, shields, errors ->
+        maneuvers.forEach {
+            Log.e("test", "primary - id: ${it.primary.id}, text: ${it.primary.text}")
+            Log.e("test", "secondary - id: ${it.secondary?.id}, text: ${it.secondary?.text}")
+            Log.e("test", "sub - id: ${it.sub?.id}, text: ${it.sub?.text}")
+        }
+        shields.keys.forEach { key ->
+            Log.e(
+                "test",
+                "shield - id: $key, bitmap: ${
+                    if (shields[key] != null) {
+                        shields[key].toString().subSequence(0, 50)
+                    } else null
+                }"
+            )
+        }
+        errors.keys.forEach { key ->
+            Log.e("test", "errors - id: $key, error: ${errors[key]}")
+        }
     }
 
     private val callbackV2 = object : ManeuverCallback {
@@ -147,6 +155,8 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
                 if (it.isNotEmpty()) {
                     binding.maneuverView.renderUpcomingManeuvers(it.subList(1, it.size))
                 }
+                Log.e("test", "getRoadShields called")
+                maneuverApi.getRoadShields(it, roadShieldCallback)
             }
         }
     }
@@ -337,7 +347,7 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.longitude,
                 currentLocation.latitude
             )
-             findRoute(originPoint, null, point)
+            findRoute(originPoint, null, point)
             //val o = Point.fromLngLat(-121.981985, 37.529766)
             //val o1 = Point.fromLngLat(-121.978472, 37.529749)
             //val d = Point.fromLngLat(-121.971343, 37.535366)
