@@ -337,11 +337,11 @@ class MapboxManeuverActivity : AppCompatActivity(), OnMapLongClickListener {
                 currentLocation.longitude,
                 currentLocation.latitude
             )
-            // findRoute(originPoint, point)
-            val o = Point.fromLngLat(-121.981985, 37.529766)
-            val o1 = Point.fromLngLat(-121.978472, 37.529749)
-            val d = Point.fromLngLat(-121.971343, 37.535366)
-            findRoute(o, listOf(o1), d)
+             findRoute(originPoint, null, point)
+            //val o = Point.fromLngLat(-121.981985, 37.529766)
+            //val o1 = Point.fromLngLat(-121.978472, 37.529749)
+            //val d = Point.fromLngLat(-121.971343, 37.535366)
+            //findRoute(o, listOf(o1), d)
             // Route with multiple maneuver at both first and last
             // val o = Point.fromLngLat(-121.981985, 37.529766)
             // val d = Point.fromLngLat(-121.986208, 37.522779)

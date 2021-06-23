@@ -10,12 +10,14 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL
 import androidx.recyclerview.widget.RecyclerView.VERTICAL
 import com.mapbox.bindgen.Expected
 import com.mapbox.navigation.ui.maneuver.R
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxMainManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxManeuverLayoutBinding
 import com.mapbox.navigation.ui.maneuver.databinding.MapboxSubManeuverLayoutBinding
+import com.mapbox.navigation.ui.maneuver.model.Lane
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.ManeuverError
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
@@ -64,7 +66,7 @@ class MapboxManeuverView : ConstraintLayout {
         initAttributes(attrs)
     }
 
-    // private val laneGuidanceAdapter = MapboxLaneGuidanceAdapter(context)
+    private val laneGuidanceAdapter = MapboxLaneGuidanceAdapter(context)
     private val upcomingManeuverAdapter = MapboxUpcomingManeuverAdapter(context)
     private val binding = MapboxManeuverLayoutBinding.inflate(
         LayoutInflater.from(context),
@@ -78,10 +80,10 @@ class MapboxManeuverView : ConstraintLayout {
      * Initialize.
      */
     init {
-        /*binding.laneGuidanceRecycler.apply {
+        binding.laneGuidanceRecycler.apply {
             layoutManager = LinearLayoutManager(context, HORIZONTAL, false)
             adapter = laneGuidanceAdapter
-        }*/
+        }
 
         binding.upcomingManeuverRecycler.apply {
             layoutManager = LinearLayoutManager(context, VERTICAL, false)
@@ -284,16 +286,16 @@ class MapboxManeuverView : ConstraintLayout {
      * Invoke the method to add lane information on top of [MapboxManeuverView]
      * @param lane Lane
      */
-    /*fun renderAddLanes(lane: Lane) {
+    fun renderAddLanes(lane: Lane) {
         laneGuidanceAdapter.addLanes(lane.allLanes, lane.activeDirection)
-    }*/
+    }
 
     /**
      * Invoke the method to remove lane information on top of [MapboxManeuverView]
      */
-    /*fun renderRemoveLanes() {
+    fun renderRemoveLanes() {
         laneGuidanceAdapter.removeLanes()
-    }*/
+    }
 
     /**
      * Invoke the method to render list of upcoming instructions on top of [MapboxManeuverView]
@@ -350,12 +352,12 @@ class MapboxManeuverView : ConstraintLayout {
                 )
             )
         )
-        /*laneGuidanceAdapter.updateStyle(
+        laneGuidanceAdapter.updateStyle(
             typedArray.getResourceId(
                 R.styleable.MapboxManeuverView_laneGuidanceManeuverIconStyle,
                 R.style.MapboxStyleTurnIconManeuver
             )
-        )*/
+        )
         mainLayoutBinding.maneuverIcon.updateTurnIconStyle(
             ContextThemeWrapper(
                 context,
@@ -400,14 +402,14 @@ class MapboxManeuverView : ConstraintLayout {
         } else {
             renderSubManeuver(null)
         }
-        /*when (lane != null) {
+        when (lane != null) {
             true -> {
                 renderAddLanes(lane)
             }
             else -> {
                 renderRemoveLanes()
             }
-        }*/
+        }
     }
 
     private fun hideSecondaryManeuver(visibility: Int) {

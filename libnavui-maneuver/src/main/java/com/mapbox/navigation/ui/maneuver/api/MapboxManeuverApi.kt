@@ -117,7 +117,7 @@ class MapboxManeuverApi internal constructor(
 
     // TODO: The view needs to maintain the Map<String, RoadShield> so that it doesn't blink.
     // TODO: Write unit tests
-    // TODO: Test off-route and other geographies
+    // TODO: Test off-route
     /**
      * Given a list of [Maneuver] the function iterates through the list starting at startIndex and
      * ending at endIndex to request shields for urls associated in [RoadShieldComponentNode]. If

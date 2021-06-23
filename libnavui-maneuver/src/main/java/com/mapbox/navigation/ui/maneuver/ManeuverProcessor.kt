@@ -12,6 +12,8 @@ import com.mapbox.navigation.ui.maneuver.model.Component
 import com.mapbox.navigation.ui.maneuver.model.DelimiterComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitNumberComponentNode
+import com.mapbox.navigation.ui.maneuver.model.Lane
+import com.mapbox.navigation.ui.maneuver.model.LaneIndicator
 import com.mapbox.navigation.ui.maneuver.model.LegToManeuvers
 import com.mapbox.navigation.ui.maneuver.model.Maneuver
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
@@ -260,14 +262,15 @@ internal object ManeuverProcessor {
     }
 
     private fun transformToManeuver(
-        bannerInstructions: BannerInstructions,
+        bannerInstruction: BannerInstructions,
         distanceFormatter: DistanceFormatter,
         routeProgress: RouteProgress? = null
     ): Maneuver {
-        val primaryManeuver = getPrimaryManeuver(bannerInstructions.primary())
-        val secondaryManeuver = getSecondaryManeuver(bannerInstructions.secondary())
-        val subManeuver = getSubManeuverText(bannerInstructions.sub())
-        val totalStepDistance = bannerInstructions.distanceAlongGeometry()
+        val primaryManeuver = getPrimaryManeuver(bannerInstruction.primary())
+        val secondaryManeuver = getSecondaryManeuver(bannerInstruction.secondary())
+        val subManeuver = getSubManeuverText(bannerInstruction.sub())
+        val laneGuidance = getLaneGuidance(bannerInstruction)
+        val totalStepDistance = bannerInstruction.distanceAlongGeometry()
         val stepDistanceRemaining = getStepDistanceRemaining(routeProgress)
         val stepDistance = StepDistance(distanceFormatter, totalStepDistance, stepDistanceRemaining)
         return Maneuver(
@@ -275,7 +278,7 @@ internal object ManeuverProcessor {
             stepDistance,
             secondaryManeuver,
             subManeuver,
-            null
+            laneGuidance
         )
     }
 
@@ -351,6 +354,40 @@ internal object ManeuverProcessor {
             }
         }
         return null
+    }
+
+    private fun getLaneGuidance(bannerInstruction: BannerInstructions): Lane? {
+        val subBannerText = bannerInstruction.sub()
+        val primaryBannerText = bannerInstruction.primary()
+        return subBannerText?.let { subBanner ->
+            if (subBanner.type() == null && subBanner.text().isEmpty()) {
+                val bannerComponentList = subBanner.components()
+                return ifNonNull(bannerComponentList) { list ->
+                    val laneIndicatorList = mutableListOf<LaneIndicator>()
+                    list.forEach {
+                        val directions = it.directions()
+                        val active = it.active()
+                        if (!directions.isNullOrEmpty() && active != null) {
+                            laneIndicatorList.add(
+                                LaneIndicator
+                                    .Builder()
+                                    .isActive(active)
+                                    .directions(directions)
+                                    .build()
+                            )
+                        }
+                    }
+                    // TODO: This is a fallback solution. Remove this and add all active_directions
+                    //  to LaneIndicator() once directions have migrated all customers to valhalla
+                    Lane
+                        .Builder()
+                        .allLanes(laneIndicatorList)
+                        .activeDirection(primaryBannerText.modifier())
+                        .build()
+                }
+            }
+            null
+        }
     }
 
     private fun createComponents(
