@@ -13,6 +13,7 @@ class SubManeuverTest : BuilderTest<SubManeuver, SubManeuver.Builder>() {
 
     override fun getFilledUpBuilder(): SubManeuver.Builder {
         return SubManeuver.Builder()
+            .id("1a2s3d4f5g")
             .degrees(11.0)
             .text("Street")
             .type("turn")

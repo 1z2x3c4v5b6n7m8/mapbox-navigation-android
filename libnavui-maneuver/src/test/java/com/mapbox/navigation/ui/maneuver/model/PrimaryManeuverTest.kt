@@ -13,6 +13,7 @@ class PrimaryManeuverTest : BuilderTest<PrimaryManeuver, PrimaryManeuver.Builder
 
     override fun getFilledUpBuilder(): PrimaryManeuver.Builder {
         return PrimaryManeuver.Builder()
+            .id("hello")
             .degrees(11.0)
             .text("Street")
             .type("turn")

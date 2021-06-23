@@ -80,8 +80,7 @@ class RoadShieldGeneratorTest {
         val spannable = RoadShieldGenerator.styleAndGetRoadShield(
             mockShieldText,
             mockDesiredHeight,
-            mockResources,
-            null
+            mockResources
         )
         val imageSpan = spannable.getSpans(0, spannable.length, ImageSpan::class.java)
 
@@ -99,8 +98,7 @@ class RoadShieldGeneratorTest {
         val spannable = RoadShieldGenerator.styleAndGetRoadShield(
             mockShieldText,
             mockDesiredHeight,
-            mockResources,
-            mockShieldIcon
+            mockResources
         )
         val imageSpan = spannable.getSpans(0, spannable.length, ImageSpan::class.java)
 
@@ -113,36 +111,15 @@ class RoadShieldGeneratorTest {
         val mockShieldText = "880"
         val mockDesiredHeight = 50
         val mockResources = ctx.resources
-        val mockShieldIcon = byteArrayOf(67, -87, 45, 33, 59)
 
         val spannable = RoadShieldGenerator.styleAndGetRoadShield(
             mockShieldText,
             mockDesiredHeight,
-            mockResources,
-            mockShieldIcon
+            mockResources
         )
         val imageSpan = spannable.getSpans(0, spannable.length, ImageSpan::class.java)
 
         assertTrue(spannable.isNotEmpty())
         assertTrue(imageSpan.isEmpty())
-    }
-
-    @Test
-    fun `when road shield valid then spannable has contains image span`() {
-        val mockShieldText = "880"
-        val mockDesiredHeight = 50
-        val mockResources = ctx.resources
-
-        val spannable = RoadShieldGenerator.styleAndGetRoadShield(
-            mockShieldText,
-            mockDesiredHeight,
-            mockResources,
-            mockShieldIcon
-        )
-        val imageSpan = spannable.getSpans(0, spannable.length, ImageSpan::class.java)
-
-        assertTrue(spannable.isNotEmpty())
-        assertTrue(imageSpan.size == 1)
-        assertNotNull(imageSpan[0].drawable)
     }
 }

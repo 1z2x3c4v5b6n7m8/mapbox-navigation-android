@@ -55,6 +55,7 @@ class SubManeuver private constructor(
 
         other as SubManeuver
 
+        if (id != other.id) return false
         if (text != other.text) return false
         if (type != other.type) return false
         if (degrees != other.degrees) return false
@@ -69,7 +70,8 @@ class SubManeuver private constructor(
      * Regenerate whenever a change is made
      */
     override fun hashCode(): Int {
-        var result = text.hashCode()
+        var result = id.hashCode()
+        result = 31 * result + (text.hashCode())
         result = 31 * result + (type?.hashCode() ?: 0)
         result = 31 * result + (degrees?.hashCode() ?: 0)
         result = 31 * result + (modifier?.hashCode() ?: 0)

@@ -13,6 +13,7 @@ class SecondaryManeuverTest : BuilderTest<SecondaryManeuver, SecondaryManeuver.B
 
     override fun getFilledUpBuilder(): SecondaryManeuver.Builder {
         return SecondaryManeuver.Builder()
+            .id("1a2s3d4f5g")
             .degrees(11.0)
             .text("Street")
             .type("turn")

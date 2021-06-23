@@ -13,7 +13,7 @@ class RoadShieldComponentNodeTest : BuilderTest<RoadShieldComponentNode,
     override fun getFilledUpBuilder(): RoadShieldComponentNode.Builder {
         return RoadShieldComponentNode.Builder()
             .text("exit-number")
-            .shieldIcon(byteArrayOf())
+            .shieldUrl("hello")
     }
 
     @Test
