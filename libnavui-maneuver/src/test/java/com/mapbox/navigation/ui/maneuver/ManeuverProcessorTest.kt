@@ -1,26 +1,21 @@
 package com.mapbox.navigation.ui.maneuver
 
-import com.mapbox.api.directions.v5.models.BannerComponents
+import com.mapbox.api.directions.v5.models.*
 import com.mapbox.api.directions.v5.models.BannerComponents.DELIMITER
 import com.mapbox.api.directions.v5.models.BannerComponents.EXIT
 import com.mapbox.api.directions.v5.models.BannerComponents.EXIT_NUMBER
 import com.mapbox.api.directions.v5.models.BannerComponents.ICON
 import com.mapbox.api.directions.v5.models.BannerComponents.TEXT
 import com.mapbox.api.directions.v5.models.BannerComponents.builder
-import com.mapbox.api.directions.v5.models.BannerInstructions
-import com.mapbox.api.directions.v5.models.BannerText
-import com.mapbox.api.directions.v5.models.LegStep
-import com.mapbox.api.directions.v5.models.ManeuverModifier
-import com.mapbox.api.directions.v5.models.RouteLeg
+import com.mapbox.navigation.base.formatter.DistanceFormatter
 import com.mapbox.navigation.base.trip.model.RouteLegProgress
 import com.mapbox.navigation.base.trip.model.RouteProgress
-import com.mapbox.navigation.base.trip.model.RouteStepProgress
+import com.mapbox.navigation.testing.FileUtils
 import com.mapbox.navigation.testing.MainCoroutineRule
 import com.mapbox.navigation.ui.maneuver.model.Component
 import com.mapbox.navigation.ui.maneuver.model.DelimiterComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitComponentNode
 import com.mapbox.navigation.ui.maneuver.model.ExitNumberComponentNode
-import com.mapbox.navigation.ui.maneuver.model.Lane
 import com.mapbox.navigation.ui.maneuver.model.LaneIndicator
 import com.mapbox.navigation.ui.maneuver.model.PrimaryManeuver
 import com.mapbox.navigation.ui.maneuver.model.RoadShieldComponentNode
@@ -31,7 +26,6 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
@@ -41,6 +35,407 @@ class ManeuverProcessorTest {
     @get:Rule
     var coroutineRule = MainCoroutineRule()
 
+    @Test
+    fun `when maneuver with direction route having invalid banner instruction`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_banner_instruction.json")
+        )
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            null,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverList.Failure(
+            "LegStep should have valid banner instructions"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with direction route having invalid steps`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_steps.json")
+        )
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            null,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverList.Failure("RouteLeg should have valid steps")
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with direction route having invalid legs`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_legs.json")
+        )
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            null,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverList.Failure("Route should have valid legs")
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with direction route having empty banner instructions`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_empty_banner_instructions.json")
+        )
+        val routeLeg = null
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            routeLeg,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverList.Failure(
+            "Maneuver list not found corresponding to $routeLeg"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with direction route and route leg passed is different`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg = mockk<RouteLeg> {
+            every { distance() } returns null
+            every { duration() } returns null
+            every { durationTypical() } returns null
+            every { summary() } returns null
+            every { admins() } returns null
+            every { steps() } returns null
+            every { incidents() } returns null
+            every { annotation() } returns null
+            every { closures() } returns null
+        }
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            routeLeg,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverList.Failure(
+            "$routeLeg passed is different"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with direction route and is valid`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg = null
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            routeLeg,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = 4
+
+        val actual = ManeuverProcessor.process(maneuverAction) as
+            ManeuverResult.GetManeuverList.Success
+
+        assertEquals(expected, actual.maneuvers.size)
+    }
+
+    @Test
+    fun `when maneuver with direction route is fetched then call again`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg = null
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverListWithRoute(
+            route,
+            routeLeg,
+            maneuverState,
+            distanceFormatter
+        )
+
+        ManeuverProcessor.process(maneuverAction)
+
+        val route1 = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg1 = null
+        val maneuverAction1 = ManeuverAction.GetManeuverListWithRoute(
+            route1,
+            routeLeg1,
+            maneuverState,
+            distanceFormatter
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction1) as
+            ManeuverResult.GetManeuverList.Success
+
+        assertEquals(21.2, actual.maneuvers[0].stepDistance.totalDistance, 0.0)
+    }
+
+    @Test
+    fun `when maneuver with route progress having null banner instruction`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_banner_instruction.json")
+        )
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        every { routeProgress.bannerInstructions } returns null
+        mockLegProgress(routeProgress, 45f, 34.0)
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverListWithProgress.Failure(
+            "${routeProgress.bannerInstructions} cannot be null"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with route progress having invalid banner instruction`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_banner_instruction.json")
+        )
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        mockLegProgress(routeProgress, 45f, 34.0)
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverListWithProgress.Failure(
+            "LegStep should have valid banner instructions"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with route progress having invalid steps`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_steps.json")
+        )
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        mockLegProgress(routeProgress, 45f, 34.0)
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverListWithProgress.Failure(
+            "RouteLeg should have valid steps"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with route progress having invalid legs`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route_invalid_legs.json")
+        )
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        mockLegProgress(routeProgress, 45f, 34.0)
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverListWithProgress.Failure(
+            "Route should have valid legs"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with route progress having different route leg`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        val legProgress = mockLegProgress(routeProgress, 45f, 34.0)
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverListWithProgress.Failure(
+            "Could not find the ${legProgress.routeLeg}"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with route progress having different step index`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg = route.legs()!![0]
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        val legProgress = mockLegProgress(routeProgress, 45f, 34.0)
+        every { legProgress.currentStepProgress?.stepIndex } returns -1
+        every { legProgress.routeLeg } returns routeLeg
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = ManeuverResult.GetManeuverListWithProgress.Failure(
+            "Could not find the -1"
+        )
+
+        val actual = ManeuverProcessor.process(maneuverAction)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `when maneuver with route progress valid`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg = route.legs()!![0]
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        every { routeProgress.bannerInstructions } returns getMockBannerInstruction(
+            { "Laurel Place" }, { 21.2 }
+        )
+        val legProgress = mockLegProgress(routeProgress, 15f, 34.0)
+        every { legProgress.currentStepProgress?.stepIndex } returns 0
+        every { legProgress.routeLeg } returns routeLeg
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+        val expected = 4
+
+        val actual = ManeuverProcessor.process(maneuverAction) as
+            ManeuverResult.GetManeuverListWithProgress.Success
+
+        assertEquals(expected, actual.maneuvers.size)
+        assertEquals(15.0, actual.maneuvers[0].stepDistance.distanceRemaining)
+    }
+
+    @Test
+    fun `when maneuver with route progress is fetched then call again`() {
+        val route = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg = route.legs()!![0]
+        val routeProgress = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress.route } returns route
+        every { routeProgress.bannerInstructions } returns getMockBannerInstruction(
+            { "Laurel Place" }, { 21.2 }
+        )
+        val legProgress = mockLegProgress(routeProgress, 15f, 34.0)
+        every { legProgress.currentStepProgress?.stepIndex } returns 0
+        every { legProgress.routeLeg } returns routeLeg
+        val maneuverState = ManeuverState()
+        val distanceFormatter = mockk<DistanceFormatter>()
+        val maneuverAction = ManeuverAction.GetManeuverList(
+            routeProgress,
+            maneuverState,
+            distanceFormatter
+        )
+
+        ManeuverProcessor.process(maneuverAction)
+
+        val route1 = DirectionsRoute.fromJson(
+            FileUtils.loadJsonFixture("short_route.json")
+        )
+        val routeLeg1 = route1.legs()!![0]
+        val routeProgress1 = mockk<RouteProgress>(relaxed = true)
+        every { routeProgress1.route } returns route1
+        every { routeProgress1.bannerInstructions } returns getMockBannerInstruction(
+            { "Laurel Place" }, { 21.2 }
+        )
+        val legProgress1 = mockLegProgress(routeProgress1, 10f, 34.0)
+        every { legProgress1.currentStepProgress?.stepIndex } returns 0
+        every { legProgress1.routeLeg } returns routeLeg1
+        val maneuverAction1 = ManeuverAction.GetManeuverList(
+            routeProgress1,
+            maneuverState,
+            distanceFormatter
+        )
+
+        val actual1 = ManeuverProcessor.process(maneuverAction1) as
+            ManeuverResult.GetManeuverListWithProgress.Success
+
+        assertEquals(4, actual1.maneuvers.size)
+        assertEquals(10.0, actual1.maneuvers[0].stepDistance.distanceRemaining)
+    }
+
     private fun getMockBannerInstruction(
         textPrimary: () -> String,
         distanceAlongGeometry: () -> Double
@@ -48,7 +443,16 @@ class ManeuverProcessorTest {
         val bannerInstructions = mockk<BannerInstructions>()
         every { bannerInstructions.primary() } returns mockBannerText(
             { textPrimary() },
-            { listOf(mockBannerComponent({ textPrimary() }, { TEXT })) }
+            { listOf(mockBannerComponent(
+                { textPrimary() },
+                { TEXT },
+                abbreviation = { "Laurel Pl" },
+                abbreviationPriority = { 0 }))
+            },
+            { "turn" },
+            { "left" },
+            { null },
+            { null }
         )
         every { bannerInstructions.secondary() } returns null
         every { bannerInstructions.sub() } returns null
@@ -98,274 +502,16 @@ class ManeuverProcessorTest {
         return bannerComponents
     }
 
-    private fun getPrimaryBannerText(): BannerText {
-        val primaryBannerComponentList = getPrimaryBannerComponentList()
-        val mockPrimaryBannerText = mockk<BannerText>()
-        every { mockPrimaryBannerText.type() } returns "merge"
-        every { mockPrimaryBannerText.text() } returns "Exit 23 I-880 / Stevenson Boulevard"
-        every { mockPrimaryBannerText.degrees() } returns null
-        every { mockPrimaryBannerText.drivingSide() } returns null
-        every { mockPrimaryBannerText.modifier() } returns "slight left"
-        every { mockPrimaryBannerText.components() } returns primaryBannerComponentList
-        return mockPrimaryBannerText
-    }
-
-    private fun getPrimaryBannerComponentList(): List<BannerComponents> {
-        val primaryExitComponent = buildExitComponent("Exit")
-        val primaryExitNumberComponent = buildExitNumberComponent("23")
-        val primaryRoadShieldComponent = buildRoadShieldComponent("I-880")
-        val primaryDelimitedComponent = buildDelimiterComponent("/")
-        val primaryTextComponent = buildTextComponent("Stevenson Boulevard")
-        return listOf(
-            primaryExitComponent,
-            primaryExitNumberComponent,
-            primaryRoadShieldComponent,
-            primaryDelimitedComponent,
-            primaryTextComponent
-        )
-    }
-
-    private fun createPrimaryManeuver(bannerText: BannerText): PrimaryManeuver {
-        val componentList = listOf(
-            Component(
-                EXIT,
-                ExitComponentNode
-                    .Builder()
-                    .text("Exit")
-                    .build()
-            ),
-            Component(
-                EXIT_NUMBER,
-                ExitNumberComponentNode
-                    .Builder()
-                    .text("23")
-                    .build()
-            ),
-            Component(
-                ICON,
-                RoadShieldComponentNode
-                    .Builder()
-                    .text("I-880")
-                    .build()
-            ),
-            Component(
-                DELIMITER,
-                DelimiterComponentNode
-                    .Builder()
-                    .text("/")
-                    .build()
-            ),
-            Component(
-                TEXT,
-                TextComponentNode
-                    .Builder()
-                    .text("Stevenson Boulevard")
-                    .abbr(null)
-                    .abbrPriority(null)
-                    .build()
-            )
-        )
-        return PrimaryManeuver
-            .Builder()
-            .text(bannerText.text())
-            .type(bannerText.type())
-            .degrees(bannerText.degrees())
-            .modifier(bannerText.modifier())
-            .drivingSide(bannerText.drivingSide())
-            .componentList(componentList)
-            .build()
-    }
-
-    private fun getSecondaryBannerText(): BannerText {
-        val bannerComponentList = getSecondaryBannerComponentList()
-        val mockBannerText = mockk<BannerText>()
-        every { mockBannerText.type() } returns "fork"
-        every { mockBannerText.text() } returns "Mowry Avenue"
-        every { mockBannerText.degrees() } returns null
-        every { mockBannerText.drivingSide() } returns null
-        every { mockBannerText.modifier() } returns "left"
-        every { mockBannerText.components() } returns bannerComponentList
-        return mockBannerText
-    }
-
-    private fun getSecondaryBannerComponentList(): List<BannerComponents> {
-        val secondaryTextComponent = buildTextComponent("Mowry Avenue")
-        return listOf(
-            secondaryTextComponent
-        )
-    }
-
-    private fun createSecondaryManeuver(bannerText: BannerText): SecondaryManeuver {
-        return SecondaryManeuver
-            .Builder()
-            .text(bannerText.text())
-            .type(bannerText.type())
-            .degrees(bannerText.degrees())
-            .modifier(bannerText.modifier())
-            .drivingSide(bannerText.drivingSide())
-            .componentList(
-                listOf(
-                    Component(
-                        TEXT,
-                        TextComponentNode
-                            .Builder()
-                            .text("Mowry Avenue")
-                            .abbr(null)
-                            .abbrPriority(null)
-                            .build()
-                    )
-                )
-            )
-            .build()
-    }
-
-    private fun getSubBannerText(): BannerText {
-        val bannerComponentList = getSubBannerComponentList()
-        val mockBannerText = mockk<BannerText>()
-        every { mockBannerText.type() } returns "turn"
-        every { mockBannerText.text() } returns "Central Fremont"
-        every { mockBannerText.degrees() } returns null
-        every { mockBannerText.drivingSide() } returns null
-        every { mockBannerText.modifier() } returns "right"
-        every { mockBannerText.components() } returns bannerComponentList
-        return mockBannerText
-    }
-
-    private fun getLaneBannerText(): BannerText {
-        val bannerComponentList = buildLaneComponent()
-        val mockBannerText = mockk<BannerText>()
-        every { mockBannerText.type() } returns null
-        every { mockBannerText.text() } returns ""
-        every { mockBannerText.degrees() } returns null
-        every { mockBannerText.drivingSide() } returns null
-        every { mockBannerText.modifier() } returns null
-        every { mockBannerText.components() } returns bannerComponentList
-        return mockBannerText
-    }
-
-    private fun getSubBannerComponentList(): List<BannerComponents> {
-        val subRoadShieldComponent = buildRoadShieldComponent("I-880")
-        val subDelimitedComponent = buildDelimiterComponent("/")
-        val subTextComponent = buildTextComponent("Central Fremont")
-        return listOf(
-            subRoadShieldComponent,
-            subDelimitedComponent,
-            subTextComponent
-        )
-    }
-
-    private fun createSubManeuver(bannerText: BannerText): SubManeuver {
-        val componentList = listOf(
-            Component(
-                ICON,
-                RoadShieldComponentNode
-                    .Builder()
-                    .text("I-880")
-                    .build()
-            ),
-            Component(
-                DELIMITER,
-                DelimiterComponentNode
-                    .Builder()
-                    .text("/")
-                    .build()
-            ),
-            Component(
-                TEXT,
-                TextComponentNode
-                    .Builder()
-                    .text("Central Fremont")
-                    .abbr(null)
-                    .abbrPriority(null)
-                    .build()
-            )
-        )
-        return SubManeuver
-            .Builder()
-            .text(bannerText.text())
-            .type(bannerText.type())
-            .degrees(bannerText.degrees())
-            .modifier(bannerText.modifier())
-            .drivingSide(bannerText.drivingSide())
-            .componentList(componentList)
-            .build()
-    }
-
-    private fun createLaneManeuver(): List<LaneIndicator> {
-        return listOf(
-            LaneIndicator
-                .Builder()
-                .isActive(false)
-                .directions(listOf("left"))
-                .build(),
-            LaneIndicator
-                .Builder()
-                .isActive(false)
-                .directions(listOf("right"))
-                .build(),
-            LaneIndicator
-                .Builder()
-                .isActive(true)
-                .directions(listOf("straight"))
-                .build()
-        )
-    }
-
-    private fun buildExitComponent(text: String): BannerComponents {
-        return builder()
-            .type(EXIT)
-            .text(text)
-            .build()
-    }
-
-    private fun buildExitNumberComponent(text: String): BannerComponents {
-        return builder()
-            .type(EXIT_NUMBER)
-            .text(text)
-            .build()
-    }
-
-    private fun buildDelimiterComponent(text: String): BannerComponents {
-        return builder()
-            .type(DELIMITER)
-            .text(text)
-            .build()
-    }
-
-    private fun buildRoadShieldComponent(text: String): BannerComponents {
-        return builder()
-            .type(ICON)
-            .text(text)
-            .build()
-    }
-
-    private fun buildTextComponent(text: String): BannerComponents {
-        return builder()
-            .type(TEXT)
-            .text(text)
-            .build()
-    }
-
-    private fun buildLaneComponent(): List<BannerComponents> {
-        return listOf(
-            builder()
-                .type("lane")
-                .text("")
-                .active(false)
-                .directions(listOf("left"))
-                .build(),
-            builder()
-                .type("lane")
-                .text("")
-                .active(false)
-                .directions(listOf("right"))
-                .build(),
-            builder()
-                .type("lane")
-                .text("")
-                .active(true)
-                .directions(listOf("straight"))
-                .build()
-        )
+    @Suppress("SameParameterValue")
+    private fun mockLegProgress(
+        routeProgress: RouteProgress,
+        distance: Float,
+        duration: Double
+    ): RouteLegProgress {
+        val currentLegProgress = mockk<RouteLegProgress>(relaxed = true)
+        every { routeProgress.currentLegProgress } returns currentLegProgress
+        every { currentLegProgress.currentStepProgress?.distanceRemaining } returns distance
+        every { currentLegProgress.durationRemaining } returns duration
+        return currentLegProgress
     }
 }

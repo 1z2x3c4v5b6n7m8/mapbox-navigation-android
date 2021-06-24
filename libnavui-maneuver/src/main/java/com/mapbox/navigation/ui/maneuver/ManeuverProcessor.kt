@@ -166,7 +166,7 @@ internal object ManeuverProcessor {
                     legToManeuver.stepIndexToManeuvers.forEach { stepIndexToManeuver ->
                         maneuverList.addAll(stepIndexToManeuver.maneuverList)
                     }
-                } ?: throw RuntimeException("")
+                } ?: throw RuntimeException("$routeLeg passed is different")
             }
         }
         if (maneuverList.isEmpty()) {
